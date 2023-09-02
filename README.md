@@ -50,17 +50,9 @@ After cloning the Repository to your device using `git clone https://github.com/
 <details>
   <summary>Alpha Versions</summary>
     <ol>
-        <li>v0.1.2-alpha <br>
-            Release Link: <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.2-alpha">Link</a> <br>
-            Date of Release: 16 July 2023
-        </li>
-        <li>v0.1.1-alpha <br>
-            Release Link: <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.1-alpha">Link</a> <br>
-            Date of Release: 20 June 2023
-        </li>
         <li>v0.1.0-alpha <br>
-            Release Link: <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.0-alpha">Link</a> <br>
-            Date of Release: 20 June 2023
+            Release Link: <a href=''>Link</a> <br>
+            Date of Release:
         </li>
     </ol>
 </details>
