@@ -405,10 +405,10 @@ def FFTPlotter(input_array):
         PercentAmpExist = 'Percentage Amplitude' in Current_File.columns
         if PercentAmpExist == True:
             plt.ylabel('Percentage Amplitude')
-            plt.plot(Current_File['Frequency (Hz)'], Current_File['Percentage Amplitude'])
+            plt.plot(Current_File['Frequency (Hz)'], Current_File['Percentage Amplitude'], color='black', linewidth=0.5)
         else:
             plt.ylabel('Absolute Amplitude (a.u.)')
-            plt.plot(Current_File['Frequency (Hz)'], Current_File['Absolute Amplitude (a.u.)'])
+            plt.plot(Current_File['Frequency (Hz)'], Current_File['Absolute Amplitude (a.u.)'], color='black', linewidth=0.5)
 
         # Saving File and clearing diagram
         plt.savefig(file_name + ' Plot.jpg', dpi=300)
