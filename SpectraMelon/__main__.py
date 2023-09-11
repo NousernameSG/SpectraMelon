@@ -1,5 +1,5 @@
 # SpectraMelon : Audio Spectrum Analyzer
-# Version | Date : 0.1.3-alpha | 28 Aug 2023
+# Version | Date : 0.1.0-alpha | 28 Aug 2023
 # Author : NousernameSG
 
 import os
@@ -540,7 +540,7 @@ while True:
     cls()
     print(' INFORMATION '.center(100, '*'))
     print("SpectraMelon: Audio Spectrum Analyzer")
-    print("Build: v0.1.3-alpha (7 Sept 2023)", end="\n\n")
+    print("Build: v0.1.0-alpha (7 Sept 2023)", end="\n\n")
     print("This Audio Spectrum Analyzer is built for the Research and Development Stage of the SRP Project")
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")

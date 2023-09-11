@@ -10,7 +10,9 @@
  - Maintainers
 ## Introduction
 
-'SpectraMelon' is a program made to analyse DFT spectrum data to extract it's peak frequencies, corresponding Q-Factor and percentage amplitude for research purposes. Future additions also aims to provide graph (FFT Spectrum) outputs and allowing users to get the programme to pick out specific frequencies of intrerest for cross data comparisons.
+'SpectraMelon' is a programme made to analysis DFT spectrum data output from [Phyphox](https://phyphox.org)'s Audio Spectrum Experiment. The general outline of this programme is that it would extract the Peak Frequencies of the Spectrum, its corresponding Q-Factors and Relative Amplitudes. There are also Options to generate Graph outputs of the Spectrum and Tables contining the data that has been extracted.
+
+The programme was originally created to assist me (the creator) with analysing the pile of data that I have from my SRP Research Project, which is why it's called 'SpectraMelon' - Spectrum analysis of Watermelons. Analyzing over 200+ sets of data per round of experiments would have taken an ungodly amount of time (given that we took almost a weeek and 2 traumatised souls to analyze around 30-50 sets of data) and I was lazy (: so I proceeded to develop this programme over the course of our project (and learning on the way) to assist us, and the purpose of releasing its source code is that hopefully someone else would find it useful too.
 
 ## Requirements
 
@@ -47,15 +49,6 @@ After cloning the Repository to your device using `git clone https://github.com/
     </ol>
 </details>
 
-<details>
-  <summary>Alpha Versions</summary>
-    <ol>
-        <li>v0.1.0-alpha <br>
-            Release Link: <a href=''>Link</a> <br>
-            Date of Release:
-        </li>
-    </ol>
-</details>
 
 ## Maintainers
 
