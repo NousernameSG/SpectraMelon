@@ -1,5 +1,5 @@
 # SpectraMelon : Audio Spectrum Analyzer
-# Version | Date : 0.1.3-alpha | 28 Aug 2023
+# Version | Date : 0.1.0-alpha | 28 Aug 2023
 # Author : NousernameSG
 
 import os
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 #Importing Other Program Scripts
-import InputChecker as ic
+from InputChecker import InputChecker as ic
 import MiscFunctions as mf
 import FindingFolders as ff
 
@@ -22,10 +22,10 @@ def cls():
 LowerBound_Freq = 100
 UpperBound_Freq = 1000
 dFiles = []
-AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number', 'Peak Frequency', 'Percentage Amplitude', 'Q-Factor'])
+AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number', 'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
 
 # Specific Arrays for TablePlotter
-To_Be_Plotted_Data = pd.DataFrame([], columns=['Test', 'Peak Freq', 'Percent Amp', 'Q-Factor'])
+To_Be_Plotted_Data = pd.DataFrame([])
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
@@ -34,7 +34,7 @@ def analyze_Files():
 
     #Function Variables
     SavePath = ''
-    WatermelonLetter = ''   # Valid Inputs (A, B, Amb)
+    WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
     TestRepetitions = 0
     AvgFileExists = False
 
@@ -45,8 +45,8 @@ def analyze_Files():
             Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
         elif file_extension == ".csv":
             Current_File = pd.read_csv(dFiles[i])
-        if 'Percentage Amplitude' in Current_File.columns:
-            AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Percentage Amplitude'])
+        if 'Amplitude Ratio' in Current_File.columns:
+            AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
         else:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
@@ -132,18 +132,37 @@ def analyze_Files():
             test_number = None
 
         # Adding File Path and calculations into a DataFrames for Storage
-        if 'Percentage Amplitude' in Current_File.columns:
-            TempStore_Anz = pd.DataFrame({'Queue':[i], 'Path':[file_name], 'Extension':[file_extension], 'Test Number':[test_number], 'Peak Frequency':[MaxFreq], 'Percentage Amplitude':[MaxAmp.iloc[1,]],'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number], 'Peak Freq':[round(MaxFreq,3)], 'Percent Amp':[round(MaxAmp.iloc[1,],3)],'Q-Factor':[round(qFactor,3)]})
+        if 'Amplitude Ratio' in Current_File.columns:
+            TempStore_Anz = pd.DataFrame({'Queue':[i],
+                                          'Path':[file_name],
+                                          'Extension':[file_extension],
+                                          'Test Number':[test_number],
+                                          'Peak Frequency':[MaxFreq],
+                                          'Amplitude Ratio':[MaxAmp.iloc[1,]],
+                                          'Q-Factor':[qFactor]})
+            TempStore_Plot = pd.DataFrame({'Test':[test_number],
+                                           'Peak Freq':[round(MaxFreq,3)],
+                                           'Amp Ratio':[round(MaxAmp.iloc[1,],3)],
+                                           'Q-Factor':[round(qFactor,3)]})
         else:
-            TempStore_Anz = pd.DataFrame({'Queue':[i], 'Path':[file_name], 'Extension':[file_extension], 'Test Number':[test_number], 'Peak Frequency':[MaxFreq], 'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number], 'Peak Freq':[round(MaxFreq,3)], 'Amplitude':[round(MaxAmp.iloc[1,],3)],'Q-Factor':[round(qFactor,3)]})
+            TempStore_Anz = pd.DataFrame({'Queue':[i],
+                                          'Path':[file_name],
+                                          'Extension':[file_extension],
+                                          'Test Number':[test_number],
+                                          'Peak Frequency':[MaxFreq],
+                                          'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],
+                                          'Q-Factor':[qFactor]})
+            TempStore_Plot = pd.DataFrame({'Test':[test_number],
+                                           'Peak Freq':[round(MaxFreq,3)],
+                                           'Amplitude':[round(MaxAmp.iloc[1,],3)],
+                                           'Q-Factor':[round(qFactor,3)]})
+
         AnalyzedData = pd.concat([AnalyzedData, TempStore_Anz], ignore_index=True)
         To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, TempStore_Plot], ignore_index=True)
         del TempStore_Anz, TempStore_Plot
 
 
-        ##### Preparing Data to be Plotted by FFT Plotter #####
+        ##### Preparing Data to be Plotted by Data Plotters #####
 
         # Adding Data into Array for Table Plotter
         SelectedPath = os.path.dirname(file_name)
@@ -249,8 +268,8 @@ def analyze_Files():
     AnalyzedData.to_excel(os.path.join(ff.get_download_folder(), "Output Data.xlsx"), sheet_name='Spectrum Data', index=False)
     AnalyzedData = pd.DataFrame(columns=AnalyzedData.columns)
 
-# Function to Change Amplitude Column to Percentage Amplitude
-def AmpToPercentAmp():
+# Experimental: Function to change Amplitude Column to Amplitude Ratio (Amplitude of Peak Freq = 1, the rests are ratios of the peak)
+def AmplitudeNormalizer():
     global LowerBound_Freq, UpperBound_Freq, dFiles
     for i in range(0, len(dFiles)):
         file_name, file_extension = os.path.splitext(dFiles[i])
@@ -263,20 +282,21 @@ def AmpToPercentAmp():
         # Drop Rows with Frequnecy below and above a certain frequncy in Hz
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
+        AmpData = AmpData.reset_index(drop=True)
 
-        # Extracting Sum of Amplitude
-        AmpSum = AmpData['Absolute Amplitude (a.u.)'].sum(axis=0)
-        PercentAmp = pd.DataFrame([], columns=['Percentage Amplitude'])
+        # Extracting Amplitude of Peak Frequency
+        MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
+        MaxAmp = MaxAmp.iloc[1,]
+        AmpRatio = pd.DataFrame([], columns=['Amplitude Ratio'])
 
         # Calculating Amplitude Percentages
-        PercentAmp['Percentage Amplitude'] = AmpData['Absolute Amplitude (a.u.)']
-        PercentAmp = PercentAmp.div(AmpSum, axis=1)
-        PercentAmp = PercentAmp.multiply(100, axis=1)
+        AmpRatio['Amplitude Ratio'] = AmpData['Absolute Amplitude (a.u.)']
+        AmpRatio = AmpRatio.div(MaxAmp, axis=1)
 
         # Merging Calculated Data and Saving DataFrame as Excel Output
-        PercentAmpData = pd.concat([AmpData, PercentAmp],axis=1)
-        PercentAmpData.to_csv(file_name + " (Mod).csv", index = False)
-        PercentAmpData = pd.DataFrame(columns=PercentAmpData.columns)
+        AmpRatioData = pd.concat([AmpData, AmpRatio],axis=1)
+        AmpRatioData.to_csv(file_name + " (Mod).csv", index = False)
+        AmpRatioData = pd.DataFrame(columns=AmpRatioData.columns)
         dFiles.pop(i)
         dFiles.insert(i, file_name + " (Mod).csv")
 
@@ -350,16 +370,21 @@ def TestAvgCalculator():
                 Freq_Axis = Current_File.iloc[:,0]
 
             # Adding Amplitude Data into a DataFrame to Calculate Averaged Data
-            if 'Percentage Amplitude' in Current_File.columns:
+            if 'Amplitude Ratio' in Current_File.columns:
                 input_data[j] = Current_File.iloc[:,2]
             else:
                 input_data[j] = Current_File.iloc[:,1]
 
         # Calculating Averaged Data and Saving File as Excel
-        AveragedData = pd.DataFrame([], columns=['Frequency (Hz)', 'Percentage Amplitude'])
+        AveragedData = pd.DataFrame([], columns=['Frequency (Hz)', 'Amplitude Ratio'])
         AveragedData['Frequency (Hz)'] = Freq_Axis
-        AveragedData['Percentage Amplitude'] = input_data.mean(axis=1, skipna=True)
+        AveragedData['Amplitude Ratio'] = input_data.mean(axis=1, skipna=True)
         input_data = pd.DataFrame(columns=input_data.columns)
+
+        # Rebasing Amplitude Ratio Back to one for the peak value
+        MaxAmp = AveragedData.iloc[AveragedData.iloc[:,1].idxmax()]
+        MaxAmp = MaxAmp.iloc[1,]
+        AveragedData['Amplitude Ratio'] = AveragedData['Amplitude Ratio'].div(MaxAmp)
 
         ## Checking if it is A Test or B Test Avg
         BasePath = SelectedPath
@@ -401,17 +426,17 @@ def FFTPlotter(input_array):
         #Labelling X-Axis
         plt.xlabel('Frequency (Hz)')
 
-        # Checking if Percentage Amplitude Exists (If not, Raw Amp would be used)
-        PercentAmpExist = 'Percentage Amplitude' in Current_File.columns
+        # Checking if Amplitude Ratio Exists (If not, Raw Amp would be used)
+        PercentAmpExist = 'Amplitude Ratio' in Current_File.columns
         if PercentAmpExist == True:
-            plt.ylabel('Percentage Amplitude')
-            plt.plot(Current_File['Frequency (Hz)'], Current_File['Percentage Amplitude'])
+            plt.ylabel('Amplitude Ratio')
+            plt.plot(Current_File['Frequency (Hz)'], Current_File['Amplitude Ratio'], color='black', linewidth=0.5)
         else:
             plt.ylabel('Absolute Amplitude (a.u.)')
-            plt.plot(Current_File['Frequency (Hz)'], Current_File['Absolute Amplitude (a.u.)'])
+            plt.plot(Current_File['Frequency (Hz)'], Current_File['Absolute Amplitude (a.u.)'], color='black', linewidth=0.5)
 
         # Saving File and clearing diagram
-        plt.savefig(file_name + ' Plot.jpg', dpi=300)
+        plt.savefig(file_name + ' Plot.jpg', dpi=400)
         plt.clf()
 
 # Function to Plot out Table with Data
@@ -464,49 +489,54 @@ def SelectFeature():
         Fea_Options = input("\n\nOptions \n[1] Amplitude Percentage Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
         if ic.int_Checker(Fea_Options) == False:
             continue
-        # Option 1 : Amplitude Percentage Calculator
-        if int(Fea_Options) == 1:
-            AmpToPercentAmp()
-            dFiles = []
-            break
-
-        # Option 2 : Averaged Data Calculator
-        elif int(Fea_Options) == 2:
-            dFiles = TestAvgCalculator()
-            break
-
-        # Option 3 : FFT Spectrum Graph Plotter
-        elif int(Fea_Options) == 3:
-            FFTPlotter(dFiles)
-            dFiles = []
-            break
-
-        # Option 4 : Spectrum Analyzer
-        elif int(Fea_Options) == 4:
-            analyze_Files()
-            dFiles = []
-            break
-
-        # Option 5 : Full Suite (Percentage Calculator -> Averaged Data -> FFT Graph Plotter -> Analyzer)
-        elif int(Fea_Options) == 5:
-            AmpToPercentAmp()
-            dFiles = TestAvgCalculator()
-            FFTPlotter(dFiles)
-            analyze_Files()
-            dFiles = []
-            break
-
-        #Option 6 : Back to Previous Page
-        elif int(Fea_Options) == 6:
-            break
-
-        # Option 7 : Exit Program
-        elif int(Fea_Options) == 7:
-            cls()
-            exit()
-
         else:
-            print("Invaid Option")
+            Fea_Options = int(Fea_Options)
+
+        match Fea_Options:
+            case 1:
+                # Option 1 : Amplitude Percentage Calculator
+                AmplitudeNormalizer()
+                dFiles = []
+                break
+
+            case 2:
+                # Option 2 : Averaged Data Calculator
+                dFiles = TestAvgCalculator()
+                break
+
+            case 3:
+                # Option 3 : FFT Spectrum Graph Plotter
+                FFTPlotter(dFiles)
+                dFiles = []
+                break
+
+            case 4:
+                # Option 4 : Spectrum Analyzer
+                analyze_Files()
+                dFiles = []
+                break
+
+            case 5:
+                # Option 5 : Full Suite (Percentage Calculator -> Averaged Data -> FFT Graph Plotter -> Analyzer)
+                AmplitudeNormalizer()
+                dFiles = TestAvgCalculator()
+                FFTPlotter(dFiles)
+                analyze_Files()
+                dFiles = []
+                break
+
+            case 6:
+                #Option 6 : Back to Previous Page
+                break
+
+            case 7:
+                # Option 7 : Exit Program
+                cls()
+                exit()
+
+            case _:
+                ack = input("Invalid Option")
+                del ack
 
 
 ########## Inital Program Page ##########
@@ -514,7 +544,7 @@ while True:
     cls()
     print(' INFORMATION '.center(100, '*'))
     print("SpectraMelon: Audio Spectrum Analyzer")
-    print("Build: v0.1.3-alpha (28 Aug 2023)", end="\n\n")
+    print("Build: v0.1.0-alpha (7 Sept 2023)", end="\n\n")
     print("This Audio Spectrum Analyzer is built for the Research and Development Stage of the SRP Project")
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
@@ -528,37 +558,43 @@ while True:
     aF_Options = input("\n\nOptions \n[1] Add Path \n[2] Remove Path \n[3] Continue \n[4] Exit \nSelect Option: ")
     if ic.int_Checker(aF_Options) == False:
         continue
-    # Option 1 : Adding Data Files into the list to be analyzed
-    if int(aF_Options) == 1:
-        Data_File_Path = input("Input the Data File Path: ")
-        if ic.Path_Checker(Data_File_Path) == False:
-            Ack = input("This File Path Does not exist! \nPress Enter to Continue")
-            continue
-        elif ic.Extension_Checker(Data_File_Path) == False:
-            Ack = input("Wrong File Extension (.xlsx/.xls/.csv Files only) \nPress Enter to Continue")
-            continue
-        elif ic.Duplicate_Path_Checker(Data_File_Path, dFiles) == True:
-            Ack = input("This file path already exists in the queue \nPress Enter to Continue")
-            continue
-        else:
-            dFiles.append(Data_File_Path)
-
-    # Option 2 : Removing Data Files from the list to be analyzed
-    elif int(aF_Options) == 2:
-        Remove_Data_File = input("\nInput the Numerical Position of file to be removed (First File is 0): ")
-        if ic.int_Checker(Remove_Data_File) == False:
-            continue
-        if mf.Element_Remover(Remove_Data_File, dFiles) == False:
-            continue
-
-    # Option 3 : Select Program Processor
-    elif int(aF_Options) == 3:
-        SelectFeature()
-        continue
-
-    # Option 4 : Exit Program
-    elif int(aF_Options) == 4:
-        cls()
-        exit()
     else:
-        print("Invaid Option")
+        aF_Options = int(aF_Options)
+
+    match aF_Options:
+        case 1:
+            # Option 1 : Adding Data Files into the list to be analyzed
+            Data_File_Path = input("Input the Data File Path: ")
+            if ic.Path_Checker(Data_File_Path) == False:
+                Ack = input("This File Path Does not exist! \nPress Enter to Continue")
+                continue
+            elif ic.Extension_Checker(Data_File_Path) == False:
+                Ack = input("Wrong File Extension (.xlsx/.xls/.csv Files only) \nPress Enter to Continue")
+                continue
+            elif ic.Duplicate_Path_Checker(Data_File_Path, dFiles) == True:
+                Ack = input("This file path already exists in the queue \nPress Enter to Continue")
+                continue
+            else:
+                dFiles.append(Data_File_Path)
+
+        case 2:
+            # Option 2 : Removing Data Files from the list to be analyzed
+            Remove_Data_File = input("\nInput the Numerical Position of file to be removed (First File is 0): ")
+            if ic.int_Checker(Remove_Data_File) == False:
+                continue
+            if mf.Element_Remover(Remove_Data_File, dFiles) == False:
+                continue
+
+        case 3:
+            # Option 3 : Select Program Processor
+            SelectFeature()
+            continue
+
+        case 4:
+            # Option 4 : Exit Program
+            cls()
+            exit()
+
+        case _:
+            ack = input("Invalid Option")
+            del ack
