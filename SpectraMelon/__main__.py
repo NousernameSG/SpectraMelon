@@ -300,7 +300,36 @@ def AmplitudeNormalizer():
         dFiles.pop(i)
         dFiles.insert(i, file_name + " (Mod).csv")
 
+# Function to Change Amplitude Column to Percentage Amplitude
+def AmpToPercentAmp():
+    global LowerBound_Freq, UpperBound_Freq, dFiles
+    for i in range(0, len(dFiles)):
+        file_name, file_extension = os.path.splitext(dFiles[i])
+        if file_extension == ".xlsx" or file_extension == ".xls":
+            Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
+        elif file_extension == ".csv":
+            Current_File = pd.read_csv(dFiles[i])
+        AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
+        # Drop Rows with Frequnecy below and above a certain frequncy in Hz
+        AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
+        AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
+
+        # Extracting Sum of Amplitude
+        AmpSum = AmpData['Absolute Amplitude (a.u.)'].sum(axis=0)
+        PercentAmp = pd.DataFrame([], columns=['Percentage Amplitude'])
+
+        # Calculating Amplitude Percentages
+        PercentAmp['Percentage Amplitude'] = AmpData['Absolute Amplitude (a.u.)']
+        PercentAmp = PercentAmp.div(AmpSum, axis=1)
+        PercentAmp = PercentAmp.multiply(100, axis=1)
+
+        # Merging Calculated Data and Saving DataFrame as Excel Output
+        PercentAmpData = pd.concat([AmpData, PercentAmp],axis=1)
+        PercentAmpData.to_csv(file_name + " (Mod).csv", index = False)
+        PercentAmpData = pd.DataFrame(columns=PercentAmpData.columns)
+        dFiles.pop(i)
+        dFiles.insert(i, file_name + " (Mod).csv")
 
 # Function to Calculate the Averaged Data (Mean of Each Row of Entry - They must have the same number of Inputs)
 # Note: This will calculate the average of all of the Data given and output it an excel sheet
