@@ -301,6 +301,7 @@ def AmplitudeNormalizer():
         dFiles.insert(i, file_name + " (Mod).csv")
 
 
+
 # Function to Calculate the Averaged Data (Mean of Each Row of Entry - They must have the same number of Inputs)
 # Note: This will calculate the average of all of the Data given and output it an excel sheet
 def TestAvgCalculator():
