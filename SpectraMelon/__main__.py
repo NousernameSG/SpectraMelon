@@ -21,6 +21,7 @@ def cls():
 ########## Storage Arrays/Variables ##########
 LowerBound_Freq = 100
 UpperBound_Freq = 1000
+Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
 dFiles = []
 AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number', 'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
 
@@ -30,7 +31,7 @@ To_Be_Plotted_Data = pd.DataFrame([])
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
-    global LowerBound_Freq, UpperBound_Freq, dFiles, AnalyzedData, To_Be_Plotted_Data
+    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, dFiles, AnalyzedData, To_Be_Plotted_Data
 
     #Function Variables
     SavePath = ''
@@ -55,6 +56,10 @@ def analyze_Files():
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
         AmpData = AmpData.reset_index(drop=True)
+
+        # Extracting the data for the different segments
+        for j in range(LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange):
+            print("null")
 
         # Extracting Max Frequncy & Amplitude Data
         MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
