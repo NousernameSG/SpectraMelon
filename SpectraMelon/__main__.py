@@ -23,7 +23,8 @@ LowerBound_Freq = 100
 UpperBound_Freq = 1000
 Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
 dFiles = []
-AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number', 'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
+AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number',
+                                         'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
 
 # Specific Arrays for TablePlotter
 To_Be_Plotted_Data = pd.DataFrame([])
