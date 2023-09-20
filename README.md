@@ -18,9 +18,7 @@
 
 ## Requirements
 
-<div style='text-align: justify;'>
 The requirements of this project has been documented in the [requirements.txt](https://github.com/NousernameSG/SpectraMelon/blob/master/Requirements.txt) file
-</div>
 
 ## Installation
 
