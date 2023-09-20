@@ -469,7 +469,7 @@ def SelectFeature():
             print(i, end="")
             print(" \t ", end="")
             print(dFiles[i])
-        Fea_Options = input("\n\nOptions \n[1] Amplitude Percentage Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
+        Fea_Options = input("\n\nOptions \n[1] Amplitude Ratio Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
         if ic.int_Checker(Fea_Options) == False:
             continue
         else:
