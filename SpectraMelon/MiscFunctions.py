@@ -3,6 +3,10 @@
 import pandas as pd
 import os
 
+# Clears cli screen
+def cls():
+    os.system('cls' if os.name=='nt' else 'clear')
+
 # Function to Delete path from pending analysis array
 def Element_Remover(removeValue, targetArray):
     while True:
@@ -13,6 +17,7 @@ def Element_Remover(removeValue, targetArray):
             Ack = input("Specified Entry Does not Exist in the Array \nPress Enter to Continue")
             return False
 
+# Reads input data file and converts it into a dataframe
 def Input_File_Reader(input_file):
     file_name, file_extension = os.path.splitext(input_file)
     if file_extension == ".xlsx" or file_extension == ".xls":

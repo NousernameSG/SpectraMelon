@@ -1,5 +1,5 @@
 # SpectraMelon : Audio Spectrum Analyzer
-# Version | Date : 0.1.0-alpha | 28 Aug 2023
+# Version | Date : 0.1.0-alpha | 20 Sept 2023
 # Author : NousernameSG
 
 import os
@@ -12,36 +12,30 @@ from InputChecker import InputChecker as ic
 import MiscFunctions as mf
 import FindingFolders as ff
 
-########## Global Functions & Variables ##########
-def cls():
-    os.system('cls' if os.name=='nt' else 'clear')
-
 
 ########## Storage Arrays/Variables ##########
 LowerBound_Freq = 100
 UpperBound_Freq = 1000
 Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
+SegmentsNum = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
 dFiles = []
-AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number',
-                                         'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
+AnalyzedData = pd.DataFrame([])
 
 # Specific Arrays for TablePlotter
 To_Be_Plotted_Data = pd.DataFrame([])
+
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
     global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, dFiles, AnalyzedData, To_Be_Plotted_Data
 
-    #Function Variables
-    SavePath = ''
-    WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
-    TestRepetitions = 0
-    AvgFileExists = False
 
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
         Current_File, file_name = mf.Input_File_Reader(dFiles[i])
+        TempStore_Anz = pd.DataFrame({'Queue':[i],
+                                      'Path':[file_name]})
         if 'Amplitude Ratio' in Current_File.columns:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
         else:
@@ -54,8 +48,11 @@ def analyze_Files():
         AmpData = AmpData.reset_index(drop=True)
 
         # Extracting the data for the different segments
-        #for j in range(LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange):
-            #print("null")
+        for j in range(0, SegmentsNum):
+            RestrictedAmpData = RestrictedAmpData
+            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] < (LowerBound_Freq + j*Freq_SegmentRange)].index, inplace=True)
+            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Freq + ()*Freq_SegmentRange)].index, inplace=True)
+            RestrictedAmpData = RestrictedAmpData.reset_index(drop=True)
 
         # Extracting Max Frequncy & Amplitude Data
         MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
@@ -134,9 +131,7 @@ def analyze_Files():
 
         # Adding File Path and calculations into a DataFrames for Storage
         if 'Amplitude Ratio' in Current_File.columns:
-            TempStore_Anz = pd.DataFrame({'Queue':[i],
-                                          'Path':[file_name],
-                                          'Test Number':[test_number],
+            TempStore_Anz = pd.DataFrame({'Test Number':[test_number],
                                           'Peak Frequency':[MaxFreq],
                                           'Amplitude Ratio':[MaxAmp.iloc[1,]],
                                           'Q-Factor':[qFactor]})
@@ -145,9 +140,7 @@ def analyze_Files():
                                            'Amp Ratio':[round(MaxAmp.iloc[1,],3)],
                                            'Q-Factor':[round(qFactor,3)]})
         else:
-            TempStore_Anz = pd.DataFrame({'Queue':[i],
-                                          'Path':[file_name],
-                                          'Test Number':[test_number],
+            TempStore_Anz = pd.DataFrame({'Test Number':[test_number],
                                           'Peak Frequency':[MaxFreq],
                                           'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],
                                           'Q-Factor':[qFactor]})
@@ -162,6 +155,12 @@ def analyze_Files():
 
 
         ##### Preparing Data to be Plotted by Data Plotters #####
+
+        #Function Variables
+        SavePath = ''
+        WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
+        TestRepetitions = 0
+        AvgFileExists = False
 
         # Adding Data into Array for Table Plotter
         SelectedPath = os.path.dirname(file_name)
@@ -464,7 +463,7 @@ def TablePlotter(input_data, save_path, watermelon_letter=''):
 def SelectFeature():
     global dFiles
     while True:
-        cls()
+        mf.cls()
         print("Queue: ")
         for i in range(0,len(dFiles)):
             print(i, end="")
@@ -515,7 +514,7 @@ def SelectFeature():
 
             case 7:
                 # Option 7 : Exit Program
-                cls()
+                mf.cls()
                 exit()
 
             case _:
@@ -525,10 +524,10 @@ def SelectFeature():
 
 ########## Inital Program Page ##########
 while True:
-    cls()
+    mf.cls()
     print(' INFORMATION '.center(100, '*'))
     print("SpectraMelon: Audio Spectrum Analyzer")
-    print("Build: v0.1.0-alpha (7 Sept 2023)", end="\n\n")
+    print("Build: v0.1.0-alpha (20 Sept 2023)", end="\n\n")
     print("This Audio Spectrum Analyzer is built for the Research and Development Stage of the SRP Project")
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
@@ -576,7 +575,7 @@ while True:
 
         case 4:
             # Option 4 : Exit Program
-            cls()
+            mf.cls()
             exit()
 
         case _:
