@@ -1,5 +1,8 @@
 # List of Miscellaneous Functions that Supports the main Functionalities of the Program
 
+import pandas as pd
+import os
+
 # Function to Delete path from pending analysis array
 def Element_Remover(removeValue, targetArray):
     while True:
@@ -9,3 +12,13 @@ def Element_Remover(removeValue, targetArray):
         except IndexError:
             Ack = input("Specified Entry Does not Exist in the Array \nPress Enter to Continue")
             return False
+
+def Input_File_Reader(input_file):
+    file_name, file_extension = os.path.splitext(input_file)
+    if file_extension == ".xlsx" or file_extension == ".xls":
+        Current_File = pd.read_excel(input_file, sheet_name='FFT Spectrum')
+    elif file_extension == ".csv":
+        Current_File = pd.read_csv(input_file)
+    del file_extension
+
+    return Current_File, file_name

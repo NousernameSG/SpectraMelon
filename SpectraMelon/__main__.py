@@ -3,7 +3,6 @@
 # Author : NousernameSG
 
 import os
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -42,11 +41,7 @@ def analyze_Files():
 
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
-        file_name, file_extension = os.path.splitext(dFiles[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(dFiles[i])
+        Current_File, file_name = mf.Input_File_Reader(dFiles[i])
         if 'Amplitude Ratio' in Current_File.columns:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
         else:
@@ -59,8 +54,8 @@ def analyze_Files():
         AmpData = AmpData.reset_index(drop=True)
 
         # Extracting the data for the different segments
-        for j in range(LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange):
-            print("null")
+        #for j in range(LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange):
+            #print("null")
 
         # Extracting Max Frequncy & Amplitude Data
         MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
@@ -141,7 +136,6 @@ def analyze_Files():
         if 'Amplitude Ratio' in Current_File.columns:
             TempStore_Anz = pd.DataFrame({'Queue':[i],
                                           'Path':[file_name],
-                                          'Extension':[file_extension],
                                           'Test Number':[test_number],
                                           'Peak Frequency':[MaxFreq],
                                           'Amplitude Ratio':[MaxAmp.iloc[1,]],
@@ -153,7 +147,6 @@ def analyze_Files():
         else:
             TempStore_Anz = pd.DataFrame({'Queue':[i],
                                           'Path':[file_name],
-                                          'Extension':[file_extension],
                                           'Test Number':[test_number],
                                           'Peak Frequency':[MaxFreq],
                                           'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],
@@ -278,11 +271,7 @@ def analyze_Files():
 def AmplitudeNormalizer():
     global LowerBound_Freq, UpperBound_Freq, dFiles
     for i in range(0, len(dFiles)):
-        file_name, file_extension = os.path.splitext(dFiles[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(dFiles[i])
+        Current_File, file_name = mf.Input_File_Reader(dFiles[i])
         AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
         # Drop Rows with Frequnecy below and above a certain frequncy in Hz
@@ -423,11 +412,7 @@ def TestAvgCalculator():
 # Function to Graph out the FFT Graph
 def FFTPlotter(input_array):
     for i in range(0, len(input_array)):
-        file_name, file_extension = os.path.splitext(input_array[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(input_array[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(input_array[i])
+        Current_File, file_name = mf.Input_File_Reader(input_array[i])
 
         #Labelling X-Axis
         plt.xlabel('Frequency (Hz)')
@@ -473,14 +458,7 @@ def TablePlotter(input_data, save_path, watermelon_letter=''):
     )
 
     # Selecting Correct File Label (referencing the Watermelon Letter)
-    if watermelon_letter == '':
-        fig.write_image(os.path.join(save_path, "Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'A':
-        fig.write_image(os.path.join(save_path, "A Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'B':
-        fig.write_image(os.path.join(save_path, "B Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'Amb':
-        fig.write_image(os.path.join(save_path, "Amb Result Table.png"),height=148, scale=6)
+    fig.write_image(os.path.join(save_path, (watermelon_letter + " Result Table.png")),height=148, scale=6)
 
 # Function to Select Specific Program Feature
 def SelectFeature():
