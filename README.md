@@ -20,9 +20,7 @@ The requirements of this project has been documented in the [requirements.txt](h
 
 ## Installation
 
-<div style='text-align: justify;'>
 After cloning the Repository to your device using `git clone https://github.com/NousernameSG/SpectraMelon.git`, you can install the required dependencies by using the command `pip install -r requirements.txt` in the root folder of the project.
-</div>
 
 ### Progam Functionality
 
