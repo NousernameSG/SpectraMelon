@@ -17,7 +17,7 @@ import FindingFolders as ff
 LowerBound_Freq = 100
 UpperBound_Freq = 1000
 Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
-SegmentsNum = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
+NumberOfSegments = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
 dFiles = []
 AnalyzedData = pd.DataFrame([])
 
@@ -28,7 +28,7 @@ To_Be_Plotted_Data = pd.DataFrame([])
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
-    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, dFiles, AnalyzedData, To_Be_Plotted_Data
+    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData, To_Be_Plotted_Data
 
 
     #Recurring for all the data files in the list
@@ -48,16 +48,26 @@ def analyze_Files():
         AmpData = AmpData.reset_index(drop=True)
 
         # Extracting the data for the different segments
-        for j in range(0, SegmentsNum):
-            RestrictedAmpData = RestrictedAmpData
+        MaxFreqPoints = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
+        for j in range(0, int(NumberOfSegments)):
+            RestrictedAmpData = AmpData.copy()
             RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] < (LowerBound_Freq + j*Freq_SegmentRange)].index, inplace=True)
-            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Freq + ()*Freq_SegmentRange)].index, inplace=True)
+            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Freq + (j+1)*Freq_SegmentRange)].index, inplace=True)
             RestrictedAmpData = RestrictedAmpData.reset_index(drop=True)
 
-        # Extracting Max Frequncy & Amplitude Data
-        MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
-        MaxFreq = MaxAmp.iloc[0,]
-        MaxAmpIdx = int(AmpData[AmpData.iloc[:,1]==MaxAmp.iloc[1,]].index[0])
+
+            # Extracting Max Frequncy & Amplitude Data
+            MaxAmp = RestrictedAmpData.iloc[RestrictedAmpData.iloc[:,1].idxmax()]
+            MaxFreq = MaxAmp.iloc[0,]
+            TempDataFrame = pd.DataFrame({"Frequency Range": [(str(LowerBound_Freq + j*Freq_SegmentRange) + ' ~ ' + str(LowerBound_Freq + (j+1)*Freq_SegmentRange))], "Peak Frequency": [MaxFreq]})
+            MaxFreqPoints = pd.concat([MaxFreqPoints, TempDataFrame], ignore_index=True)
+
+        del TempDataFrame
+
+        for j in range(0, MaxFreqPoints.shape[0]):
+            MaxAmp = AmpData[AmpData["Frequency (Hz)"] == MaxFreqPoints.iloc[j,1]]
+            MaxFreq = MaxAmp.iloc[0,0]
+            MaxAmpIdx = int(AmpData[AmpData.iloc[:,0]==MaxAmp.iloc[0,0]].index[0])
 
         # Setting Up Q-Factor Calculation Variables
         Half_MxAmp = MaxAmp.iloc[1,]/2
