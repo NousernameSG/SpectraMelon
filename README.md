@@ -45,19 +45,17 @@ After cloning the Repository to your device using `git clone https://github.com/
 <details>
   <summary>Production-Ready Versions</summary>
     <ol>
-        <li>
-        </li>
     </ol>
 </details>
 
 <details>
   <summary>Beta Versions</summary>
-    <ol>
-        <li>
-        </li>
-    </ol>
+  <ol>
+    <li>
+      <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.0-beta">v0.1.0-beta</a>
+    </li>
+  </ol>
 </details>
-
 
 ## Maintainers
 
