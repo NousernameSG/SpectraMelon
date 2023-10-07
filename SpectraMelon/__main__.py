@@ -1,9 +1,8 @@
 # SpectraMelon : Audio Spectrum Analyzer
-# Version | Date : 0.1.0-alpha | 28 Aug 2023
+# Version | Date : 0.1.0-alpha | 20 Sept 2023
 # Author : NousernameSG
 
 import os
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -13,38 +12,24 @@ from InputChecker import InputChecker as ic
 import MiscFunctions as mf
 import FindingFolders as ff
 
-########## Global Functions & Variables ##########
-def cls():
-    os.system('cls' if os.name=='nt' else 'clear')
-
 
 ########## Storage Arrays/Variables ##########
 LowerBound_Freq = 100
 UpperBound_Freq = 1000
+Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
+NumberOfSegments = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
 dFiles = []
-AnalyzedData = pd.DataFrame([], columns=['Queue','Path', 'Extension', 'Test Number', 'Peak Frequency', 'Amplitude Ratio', 'Q-Factor'])
+AnalyzedData = pd.DataFrame([])
 
-# Specific Arrays for TablePlotter
-To_Be_Plotted_Data = pd.DataFrame([])
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
-    global LowerBound_Freq, UpperBound_Freq, dFiles, AnalyzedData, To_Be_Plotted_Data
-
-    #Function Variables
-    SavePath = ''
-    WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
-    TestRepetitions = 0
-    AvgFileExists = False
+    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData
 
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
-        file_name, file_extension = os.path.splitext(dFiles[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(dFiles[i])
+        Current_File, file_name = mf.Input_File_Reader(dFiles[i])
         if 'Amplitude Ratio' in Current_File.columns:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
         else:
@@ -56,212 +41,111 @@ def analyze_Files():
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
         AmpData = AmpData.reset_index(drop=True)
 
-        # Extracting Max Frequncy & Amplitude Data
-        MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
-        MaxFreq = MaxAmp.iloc[0,]
-        MaxAmpIdx = int(AmpData[AmpData.iloc[:,1]==MaxAmp.iloc[1,]].index[0])
 
-        # Setting Up Q-Factor Calculation Variables
-        Half_MxAmp = MaxAmp.iloc[1,]/2
-        LBI_Idx = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
-        UBI_Idx = None     # Upper Bound Intecept Index
-        LBI_Freq = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
-        UBI_Freq = 0    # Frequncy at UBI - Set to zero for exception handle to work
-
-        # Finding Frequency of Lower Bound Intercept
-        # Starts from the Index of the Peak Freq down to reach the closest Intercept
-        for j in range(MaxAmpIdx,0,-1):
-            LowerV = AmpData.iloc[j-1,1]
-            UpperV = AmpData.iloc[j,1]
-            # When the Condition that one value is below and the other is above the
-            # half magnitude line, the LBI Variable is set to be used in further calculations
-            if LowerV <= Half_MxAmp and UpperV >= Half_MxAmp:
-                LBI_Idx = j
-                x1 = AmpData.iloc[LBI_Idx-1,0]
-                x2 = AmpData.iloc[LBI_Idx,0]
-                y1 = AmpData.iloc[LBI_Idx-1,1]
-                y2 = AmpData.iloc[LBI_Idx,1]
-
-                Gradient = (y2-y1)/(x2-x1)
-                Constant = y2-Gradient*x2
-
-                LBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
-                del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
-                break
-
-        # Finding Frequency of Upper Bound Intercept
-        #Stars from the Index of the Peak Frequncy Up to reach the closest intercept
-        for j in range(MaxAmpIdx,AmpData.shape[0]-1):
-            LowerV = AmpData.iloc[j,1]
-            UpperV = AmpData.iloc[j+1,1]
-            # When the Condition that one value is below and the other is above the
-            # half magnitude line, the UBI Variable is set to be used in further calculations
-            if LowerV >= Half_MxAmp and UpperV <= Half_MxAmp:
-                UBI_Idx = j
-                x1 = AmpData.iloc[UBI_Idx,0]
-                x2 = AmpData.iloc[UBI_Idx+1,0]
-                y1 = AmpData.iloc[UBI_Idx,1]
-                y2 = AmpData.iloc[UBI_Idx+1,1]
-
-                Gradient = (y2-y1)/(x2-x1)
-                Constant = y2-Gradient*x2
-
-                UBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
-                del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
-                break
-
-        # Calculating Q-Factor
-        if LBI_Freq == 0 and UBI_Freq == 0:
-            qFactor = None                          # Exception Handle for the case where there doesn't exist an intercept, extremely unlikely but it's nice to have
-        elif LBI_Freq == 0:
-            qFactor = MaxFreq/UBI_Freq
-        else:
-            qFactor = MaxFreq/(UBI_Freq-LBI_Freq)   # The bracketed term is the Delta f used for Q-Factor calculations
-
-        # Labelling Test Number
-        test_number = None
-        if 'Test 1' in file_name:
-            test_number = 1
-        elif 'Test 2' in file_name:
-            test_number = 2
-        elif 'Test 3' in file_name:
-            test_number = 3
-        elif 'Avg' in file_name:
-            test_number = 'Avg'
-        else:
-            test_number = None
-
-        # Adding File Path and calculations into a DataFrames for Storage
-        if 'Amplitude Ratio' in Current_File.columns:
-            TempStore_Anz = pd.DataFrame({'Queue':[i],
-                                          'Path':[file_name],
-                                          'Extension':[file_extension],
-                                          'Test Number':[test_number],
-                                          'Peak Frequency':[MaxFreq],
-                                          'Amplitude Ratio':[MaxAmp.iloc[1,]],
-                                          'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number],
-                                           'Peak Freq':[round(MaxFreq,3)],
-                                           'Amp Ratio':[round(MaxAmp.iloc[1,],3)],
-                                           'Q-Factor':[round(qFactor,3)]})
-        else:
-            TempStore_Anz = pd.DataFrame({'Queue':[i],
-                                          'Path':[file_name],
-                                          'Extension':[file_extension],
-                                          'Test Number':[test_number],
-                                          'Peak Frequency':[MaxFreq],
-                                          'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],
-                                          'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number],
-                                           'Peak Freq':[round(MaxFreq,3)],
-                                           'Amplitude':[round(MaxAmp.iloc[1,],3)],
-                                           'Q-Factor':[round(qFactor,3)]})
-
-        AnalyzedData = pd.concat([AnalyzedData, TempStore_Anz], ignore_index=True)
-        To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, TempStore_Plot], ignore_index=True)
-        del TempStore_Anz, TempStore_Plot
+        # Extracting the data for the different segments
+        MaxFreqPoints = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
+        for j in range(0, int(NumberOfSegments)):
+            RestrictedAmpData = AmpData.copy()
+            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] < (LowerBound_Freq + j*Freq_SegmentRange)].index, inplace=True)
+            RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Freq + (j+1)*Freq_SegmentRange)].index, inplace=True)
+            RestrictedAmpData = RestrictedAmpData.reset_index(drop=True)
 
 
-        ##### Preparing Data to be Plotted by Data Plotters #####
+            # Extracting Max Frequncy & Amplitude Data
+            MaxAmp = RestrictedAmpData.iloc[RestrictedAmpData.iloc[:,1].idxmax()]
+            MaxFreq = MaxAmp.iloc[0,]
+            TempDataFrame = pd.DataFrame({"Frequency Range": [(str(LowerBound_Freq + j*Freq_SegmentRange) + ' ~ ' + str(LowerBound_Freq + (j+1)*Freq_SegmentRange))], "Peak Frequency": [MaxFreq]})
+            MaxFreqPoints = pd.concat([MaxFreqPoints, TempDataFrame], ignore_index=True)
 
-        # Adding Data into Array for Table Plotter
-        SelectedPath = os.path.dirname(file_name)
-        # Checking if path with Specific Watermelon letter is in SavePath
-        if 'A Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'A Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'A'
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'A Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'A Test Avg') in dFiles[j]:
-                    AvgFileExists = True
-        elif 'B Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'B Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'B'
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'B Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'B Test Avg') in dFiles[j]:
-                    AvgFileExists = True
-        elif 'Amb Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'Amb Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'Amb'    # Special Code for Ambient Tests
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'Amb Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'Amb Test Avg') in dFiles[j]:
-                    AvgFileExists = True
+        del TempDataFrame
 
-        # IMPORTANT: Avg File (If it Exists) should be the last file, this chuck is referrin to the code above
-        # Calculating Values after tests for that expeiment has been ran
-        # Counter to Find out how many iterations depending on number of input tests
-        # Input Filter to ensure that the Variable isn't reset while on the same test set
+        # Extracts Q-Factor of each point (Comparing with the Non-Restricted interval to find Q-Factor),
+        # and exports all of the data into dataframes for further analysis or saving
 
-        if AvgFileExists == True:
-            if PlotRep == TestRepetitions-1:
-                # Calculating Mean and adding it to the To be Plotted Dataframe
-                MeanData = To_Be_Plotted_Data.mean(axis=0, skipna=True, numeric_only=True)
-                MeanData = MeanData.to_frame().transpose()
-                MeanData.at[0,'Test']='Mean'
+        # DataFrame to be used to store the 10 sets of Data for each file, data right below here only have to be input once, thus it is defined here
+        DataIntermediary = pd.DataFrame({'Queue':[i],
+                                         'Path':[file_name]})
 
-                # Calculating SD and adding it to the To be Plotted Dataframe
-                SDData = To_Be_Plotted_Data.std(skipna=True, numeric_only=True)
-                SDData = SDData.to_frame().transpose()
-                SDData.at[0,'Test']='SD'
-                To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, MeanData.round(3), SDData.round(3)], ignore_index=True)
-                MeanData = SDData = None
-                PlotRep += 1
-            elif PlotRep == TestRepetitions:    # REMINDER: Avg File Must Be at the last Entry
-                # Plotting Data and Flushing Variables
-                TablePlotter(To_Be_Plotted_Data,SavePath,WatermelonLetter)
-                To_Be_Plotted_Data = pd.DataFrame(columns=To_Be_Plotted_Data.columns)
-                SavePath = ''
-                WatermelonLetter = ''
-                AvgFileExists = False
-                PlotRep = 1
-                TestRepetitions = 0
-            elif PlotRep < TestRepetitions-1:
-                PlotRep += 1
+        for j in range(0, MaxFreqPoints.shape[0]):
+            MaxAmp = AmpData[AmpData["Frequency (Hz)"] == MaxFreqPoints.iloc[j,1]]
+            MaxFreq = MaxAmp.iloc[0,0]
+            MaxAmpIdx = int(AmpData[AmpData.iloc[:,0]==MaxAmp.iloc[0,0]].index[0])
+
+            # Setting Up Q-Factor Calculation Variables
+            Half_MxAmp = MaxAmp.iloc[0,1]/2
+            LBI_Idx = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
+            UBI_Idx = None     # Upper Bound Intecept Index
+            LBI_Freq = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
+            UBI_Freq = 0    # Frequncy at UBI - Set to zero for exception handle to work
+
+            # Finding Frequency of Lower Bound Intercept
+            # Starts from the Index of the Peak Freq down to reach the closest Intercept
+            for k in range(MaxAmpIdx,0,-1):
+                LowerV = AmpData.iloc[k-1,1]
+                UpperV = AmpData.iloc[k,1]
+                # When the Condition that one value is below and the other is above the
+                # half magnitude line, the LBI Variable is set to be used in further calculations
+                if LowerV <= Half_MxAmp and UpperV >= Half_MxAmp:
+                    LBI_Idx = k
+                    x1 = AmpData.iloc[LBI_Idx-1,0]
+                    x2 = AmpData.iloc[LBI_Idx,0]
+                    y1 = AmpData.iloc[LBI_Idx-1,1]
+                    y2 = AmpData.iloc[LBI_Idx,1]
+
+                    Gradient = (y2-y1)/(x2-x1)
+                    Constant = y2-Gradient*x2
+
+                    LBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                    del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
+                    break
+
+            # Finding Frequency of Upper Bound Intercept
+            #Stars from the Index of the Peak Frequncy Up to reach the closest intercept
+            for k in range(MaxAmpIdx,AmpData.shape[0]-1):
+                LowerV = AmpData.iloc[k,1]
+                UpperV = AmpData.iloc[k+1,1]
+                # When the Condition that one value is below and the other is above the
+                # half magnitude line, the UBI Variable is set to be used in further calculations
+                if LowerV >= Half_MxAmp and UpperV <= Half_MxAmp:
+                    UBI_Idx = k
+                    x1 = AmpData.iloc[UBI_Idx,0]
+                    x2 = AmpData.iloc[UBI_Idx+1,0]
+                    y1 = AmpData.iloc[UBI_Idx,1]
+                    y2 = AmpData.iloc[UBI_Idx+1,1]
+
+                    Gradient = (y2-y1)/(x2-x1)
+                    Constant = y2-Gradient*x2
+
+                    UBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                    del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
+                    break
+
+            # Calculating Q-Factor
+            if LBI_Freq == 0 and UBI_Freq == 0:
+                qFactor = None                          # Exception Handle for the case where there doesn't exist an intercept, extremely unlikely but it's nice to have
+            elif LBI_Freq == 0:
+                qFactor = MaxFreq/UBI_Freq
             else:
-                Ack = input('Failure - Issue at Plotter variable Calculations')
-                del Ack
-        else:
-            if PlotRep == TestRepetitions:
-                # Calculating Mean and adding it to the To be Plotted Dataframe
-                MeanData = To_Be_Plotted_Data.mean(axis=0, skipna=True)
-                MeanData = MeanData.to_frame().transpose()
-                MeanData.at[0,'Test']='Mean'
+                qFactor = MaxFreq/(UBI_Freq-LBI_Freq)   # The bracketed term is the Delta f used for Q-Factor calculations
 
-                # Calculating SD and adding it to the To be Plotted Dataframe
-                SDData = To_Be_Plotted_Data.std()
-                SDData = SDData.to_frame().transpose()
-                SDData.at[0,'Test']='SD'
-                To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, MeanData.round(3), SDData.round(3)], ignore_index=True)
-                MeanData = SDData = None
-
-                # Plotting Data and Flushing Variables
-                TablePlotter(To_Be_Plotted_Data,SavePath,WatermelonLetter)
-                To_Be_Plotted_Data = pd.DataFrame(columns=To_Be_Plotted_Data.columns)
-                SavePath = WatermelonLetter = ''
-                PlotRep = 1
-                TestRepetitions = 0
-            elif PlotRep < TestRepetitions:
-                PlotRep += 1
+            # Adding File Path and calculations into a DataFrames for Storage
+            if 'Amplitude Ratio' in Current_File.columns:
+                TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
+                                            ('Amplitude Ratio ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
+                                            ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
             else:
-                Ack = input('Failure - Issue at Plotter variable Calculations')
-                del Ack
+                TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
+                                            ('Absolute Amplitude (a.u.) ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
+                                            ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
+
+            # Saves data in a DataFrame, but further processing is needed for AnalyzedData (Saved as DataIntermediary) due to the axis used
+            DataIntermediary = pd.concat([DataIntermediary, TempStore_Anz], axis=1)
+
+
+        # Putting Data of the file in queue into the final DataFrame
+        AnalyzedData = pd.concat([AnalyzedData, DataIntermediary])
+        AnalyzedData.reset_index()
+        del DataIntermediary, TempStore_Anz
 
 
     # Saving all of the Analyzed Data as an Excel File
@@ -272,11 +156,7 @@ def analyze_Files():
 def AmplitudeNormalizer():
     global LowerBound_Freq, UpperBound_Freq, dFiles
     for i in range(0, len(dFiles)):
-        file_name, file_extension = os.path.splitext(dFiles[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(dFiles[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(dFiles[i])
+        Current_File, file_name = mf.Input_File_Reader(dFiles[i])
         AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
         # Drop Rows with Frequnecy below and above a certain frequncy in Hz
@@ -417,11 +297,7 @@ def TestAvgCalculator():
 # Function to Graph out the FFT Graph
 def FFTPlotter(input_array):
     for i in range(0, len(input_array)):
-        file_name, file_extension = os.path.splitext(input_array[i])
-        if file_extension == ".xlsx" or file_extension == ".xls":
-            Current_File = pd.read_excel(input_array[i], sheet_name='FFT Spectrum')
-        elif file_extension == ".csv":
-            Current_File = pd.read_csv(input_array[i])
+        Current_File, file_name = mf.Input_File_Reader(input_array[i])
 
         #Labelling X-Axis
         plt.xlabel('Frequency (Hz)')
@@ -467,26 +343,19 @@ def TablePlotter(input_data, save_path, watermelon_letter=''):
     )
 
     # Selecting Correct File Label (referencing the Watermelon Letter)
-    if watermelon_letter == '':
-        fig.write_image(os.path.join(save_path, "Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'A':
-        fig.write_image(os.path.join(save_path, "A Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'B':
-        fig.write_image(os.path.join(save_path, "B Result Table.png"),height=148, scale=6)
-    elif watermelon_letter == 'Amb':
-        fig.write_image(os.path.join(save_path, "Amb Result Table.png"),height=148, scale=6)
+    fig.write_image(os.path.join(save_path, (watermelon_letter + " Result Table.png")),height=148, scale=6)
 
 # Function to Select Specific Program Feature
 def SelectFeature():
     global dFiles
     while True:
-        cls()
+        mf.cls()
         print("Queue: ")
         for i in range(0,len(dFiles)):
             print(i, end="")
             print(" \t ", end="")
             print(dFiles[i])
-        Fea_Options = input("\n\nOptions \n[1] Amplitude Percentage Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
+        Fea_Options = input("\n\nOptions \n[1] Amplitude Ratio Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
         if ic.int_Checker(Fea_Options) == False:
             continue
         else:
@@ -531,7 +400,7 @@ def SelectFeature():
 
             case 7:
                 # Option 7 : Exit Program
-                cls()
+                mf.cls()
                 exit()
 
             case _:
@@ -541,10 +410,10 @@ def SelectFeature():
 
 ########## Inital Program Page ##########
 while True:
-    cls()
+    mf.cls()
     print(' INFORMATION '.center(100, '*'))
     print("SpectraMelon: Audio Spectrum Analyzer")
-    print("Build: v0.1.0-alpha (7 Sept 2023)", end="\n\n")
+    print("Build: v0.1.0-alpha (20 Sept 2023)", end="\n\n")
     print("This Audio Spectrum Analyzer is built for the Research and Development Stage of the SRP Project")
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
@@ -592,7 +461,7 @@ while True:
 
         case 4:
             # Option 4 : Exit Program
-            cls()
+            mf.cls()
             exit()
 
         case _:
