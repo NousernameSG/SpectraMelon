@@ -34,18 +34,37 @@ def analyze_Files():
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
         Current_File, file_name = mf.Input_File_Reader(dFiles[i])
-        TempStore_Anz = pd.DataFrame({'Queue':[i],
-                                      'Path':[file_name]})
         if 'Amplitude Ratio' in Current_File.columns:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
         else:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
+
+        # Labelling Test Number
+        test_number = None
+        if 'Test 1' in file_name:
+            test_number = 1
+        elif 'Test 2' in file_name:
+            test_number = 2
+        elif 'Test 3' in file_name:
+            test_number = 3
+        elif 'Avg' in file_name:
+            test_number = 'Avg'
+        else:
+            test_number = None
 
         # Drop Rows with Frequnecy below and above a certain frequncy in Hz
         # 3rd below this is to set the starting row to the correct index as Q-Factor is sensitive to the index
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
         AmpData = AmpData.reset_index(drop=True)
+
+        # Adding data that only has to be added once
+        if 'Amplitude Ratio' in Current_File.columns:
+            TempStore_Anz = pd.DataFrame({'Test Number':[test_number]})
+            TempStore_Plot = pd.DataFrame({'Test':[test_number]})
+        else:
+            TempStore_Anz = pd.DataFrame({'Test Number':[test_number]})
+            TempStore_Plot = pd.DataFrame({'Test':[test_number]})
 
         # Extracting the data for the different segments
         MaxFreqPoints = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
@@ -64,108 +83,105 @@ def analyze_Files():
 
         del TempDataFrame
 
+        # Extracts Q-Factor of each point (Comparing with the Non-Restricted interval to find Q-Factor),
+        # and exports all of the data into dataframes for further analysis or saving
+
+        # DataFrame to be used to store the 10 sets of Data for each file, data right below here only have to be input once, thus it is defined here
+        DataIntermediary = pd.DataFrame({'Queue':[i],
+                                         'Path':[file_name]})
+
         for j in range(0, MaxFreqPoints.shape[0]):
             MaxAmp = AmpData[AmpData["Frequency (Hz)"] == MaxFreqPoints.iloc[j,1]]
             MaxFreq = MaxAmp.iloc[0,0]
             MaxAmpIdx = int(AmpData[AmpData.iloc[:,0]==MaxAmp.iloc[0,0]].index[0])
 
-        # Setting Up Q-Factor Calculation Variables
-        Half_MxAmp = MaxAmp.iloc[1,]/2
-        LBI_Idx = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
-        UBI_Idx = None     # Upper Bound Intecept Index
-        LBI_Freq = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
-        UBI_Freq = 0    # Frequncy at UBI - Set to zero for exception handle to work
+            # Setting Up Q-Factor Calculation Variables
+            Half_MxAmp = MaxAmp.iloc[0,1]/2
+            LBI_Idx = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
+            UBI_Idx = None     # Upper Bound Intecept Index
+            LBI_Freq = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
+            UBI_Freq = 0    # Frequncy at UBI - Set to zero for exception handle to work
 
-        # Finding Frequency of Lower Bound Intercept
-        # Starts from the Index of the Peak Freq down to reach the closest Intercept
-        for j in range(MaxAmpIdx,0,-1):
-            LowerV = AmpData.iloc[j-1,1]
-            UpperV = AmpData.iloc[j,1]
-            # When the Condition that one value is below and the other is above the
-            # half magnitude line, the LBI Variable is set to be used in further calculations
-            if LowerV <= Half_MxAmp and UpperV >= Half_MxAmp:
-                LBI_Idx = j
-                x1 = AmpData.iloc[LBI_Idx-1,0]
-                x2 = AmpData.iloc[LBI_Idx,0]
-                y1 = AmpData.iloc[LBI_Idx-1,1]
-                y2 = AmpData.iloc[LBI_Idx,1]
+            # Finding Frequency of Lower Bound Intercept
+            # Starts from the Index of the Peak Freq down to reach the closest Intercept
+            for k in range(MaxAmpIdx,0,-1):
+                LowerV = AmpData.iloc[k-1,1]
+                UpperV = AmpData.iloc[k,1]
+                # When the Condition that one value is below and the other is above the
+                # half magnitude line, the LBI Variable is set to be used in further calculations
+                if LowerV <= Half_MxAmp and UpperV >= Half_MxAmp:
+                    LBI_Idx = k
+                    x1 = AmpData.iloc[LBI_Idx-1,0]
+                    x2 = AmpData.iloc[LBI_Idx,0]
+                    y1 = AmpData.iloc[LBI_Idx-1,1]
+                    y2 = AmpData.iloc[LBI_Idx,1]
 
-                Gradient = (y2-y1)/(x2-x1)
-                Constant = y2-Gradient*x2
+                    Gradient = (y2-y1)/(x2-x1)
+                    Constant = y2-Gradient*x2
 
-                LBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
-                del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
-                break
+                    LBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                    del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
+                    break
 
-        # Finding Frequency of Upper Bound Intercept
-        #Stars from the Index of the Peak Frequncy Up to reach the closest intercept
-        for j in range(MaxAmpIdx,AmpData.shape[0]-1):
-            LowerV = AmpData.iloc[j,1]
-            UpperV = AmpData.iloc[j+1,1]
-            # When the Condition that one value is below and the other is above the
-            # half magnitude line, the UBI Variable is set to be used in further calculations
-            if LowerV >= Half_MxAmp and UpperV <= Half_MxAmp:
-                UBI_Idx = j
-                x1 = AmpData.iloc[UBI_Idx,0]
-                x2 = AmpData.iloc[UBI_Idx+1,0]
-                y1 = AmpData.iloc[UBI_Idx,1]
-                y2 = AmpData.iloc[UBI_Idx+1,1]
+            # Finding Frequency of Upper Bound Intercept
+            #Stars from the Index of the Peak Frequncy Up to reach the closest intercept
+            for k in range(MaxAmpIdx,AmpData.shape[0]-1):
+                LowerV = AmpData.iloc[k,1]
+                UpperV = AmpData.iloc[k+1,1]
+                # When the Condition that one value is below and the other is above the
+                # half magnitude line, the UBI Variable is set to be used in further calculations
+                if LowerV >= Half_MxAmp and UpperV <= Half_MxAmp:
+                    UBI_Idx = k
+                    x1 = AmpData.iloc[UBI_Idx,0]
+                    x2 = AmpData.iloc[UBI_Idx+1,0]
+                    y1 = AmpData.iloc[UBI_Idx,1]
+                    y2 = AmpData.iloc[UBI_Idx+1,1]
 
-                Gradient = (y2-y1)/(x2-x1)
-                Constant = y2-Gradient*x2
+                    Gradient = (y2-y1)/(x2-x1)
+                    Constant = y2-Gradient*x2
 
-                UBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
-                del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
-                break
+                    UBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                    del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
+                    break
 
-        # Calculating Q-Factor
-        if LBI_Freq == 0 and UBI_Freq == 0:
-            qFactor = None                          # Exception Handle for the case where there doesn't exist an intercept, extremely unlikely but it's nice to have
-        elif LBI_Freq == 0:
-            qFactor = MaxFreq/UBI_Freq
-        else:
-            qFactor = MaxFreq/(UBI_Freq-LBI_Freq)   # The bracketed term is the Delta f used for Q-Factor calculations
+            # Calculating Q-Factor
+            if LBI_Freq == 0 and UBI_Freq == 0:
+                qFactor = None                          # Exception Handle for the case where there doesn't exist an intercept, extremely unlikely but it's nice to have
+            elif LBI_Freq == 0:
+                qFactor = MaxFreq/UBI_Freq
+            else:
+                qFactor = MaxFreq/(UBI_Freq-LBI_Freq)   # The bracketed term is the Delta f used for Q-Factor calculations
 
-        # Labelling Test Number
-        test_number = None
-        if 'Test 1' in file_name:
-            test_number = 1
-        elif 'Test 2' in file_name:
-            test_number = 2
-        elif 'Test 3' in file_name:
-            test_number = 3
-        elif 'Avg' in file_name:
-            test_number = 'Avg'
-        else:
-            test_number = None
+            # Adding File Path and calculations into a DataFrames for Storage
+            if 'Amplitude Ratio' in Current_File.columns:
+                TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
+                                            ('Amplitude Ratio ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
+                                            ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
+                TempStore_Plot = pd.DataFrame({'Range':[str(MaxFreqPoints.iloc[j,0])],
+                                            'Peak Freq':[round(MaxFreq,3)],
+                                            'Amp Ratio':[round(MaxAmp.iloc[0,1],3)],
+                                            'Q-Factor':[round(qFactor,3)]})
+            else:
+                TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
+                                            ('Absolute Amplitude (a.u.) ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
+                                            ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
+                TempStore_Plot = pd.DataFrame({'Range':[str(MaxFreqPoints.iloc[j,0])],
+                                            'Peak Freq':[round(MaxFreq,3)],
+                                            'Amplitude':[round(MaxAmp.iloc[0,1],3)],
+                                            'Q-Factor':[round(qFactor,3)]})
 
-        # Adding File Path and calculations into a DataFrames for Storage
-        if 'Amplitude Ratio' in Current_File.columns:
-            TempStore_Anz = pd.DataFrame({'Test Number':[test_number],
-                                          'Peak Frequency':[MaxFreq],
-                                          'Amplitude Ratio':[MaxAmp.iloc[1,]],
-                                          'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number],
-                                           'Peak Freq':[round(MaxFreq,3)],
-                                           'Amp Ratio':[round(MaxAmp.iloc[1,],3)],
-                                           'Q-Factor':[round(qFactor,3)]})
-        else:
-            TempStore_Anz = pd.DataFrame({'Test Number':[test_number],
-                                          'Peak Frequency':[MaxFreq],
-                                          'Absolute Amplitude (a.u.)':[MaxAmp.iloc[1,]],
-                                          'Q-Factor':[qFactor]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number],
-                                           'Peak Freq':[round(MaxFreq,3)],
-                                           'Amplitude':[round(MaxAmp.iloc[1,],3)],
-                                           'Q-Factor':[round(qFactor,3)]})
-
-        AnalyzedData = pd.concat([AnalyzedData, TempStore_Anz], ignore_index=True)
-        To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, TempStore_Plot], ignore_index=True)
-        del TempStore_Anz, TempStore_Plot
+            # Saves data in a DataFrame, but further processing is needed for AnalyzedData (Saved as DataIntermediary) due to the axis used
+            DataIntermediary = pd.concat([DataIntermediary, TempStore_Anz], axis=1)
+            To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, TempStore_Plot], ignore_index=True)
 
 
-        ##### Preparing Data to be Plotted by Data Plotters #####
+        # Putting Data of the file in queue into the final DataFrame
+        AnalyzedData = pd.concat([AnalyzedData, DataIntermediary])
+        AnalyzedData.reset_index()
+        del DataIntermediary, TempStore_Anz, TempStore_Plot
 
+
+    ##### Preparing Data to be Plotted by Data Plotters #####
         #Function Variables
         SavePath = ''
         WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
