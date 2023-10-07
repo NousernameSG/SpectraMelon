@@ -19,13 +19,14 @@ UpperBound_Freq = 1000
 Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
 NumberOfSegments = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
 dFiles = []
-AnalyzedData = pd.DataFrame([])
 
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
     global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData
+
+    AnalyzedData = pd.DataFrame()
 
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
