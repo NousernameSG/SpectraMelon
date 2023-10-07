@@ -21,15 +21,11 @@ NumberOfSegments = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
 dFiles = []
 AnalyzedData = pd.DataFrame([])
 
-# Specific Arrays for TablePlotter
-To_Be_Plotted_Data = pd.DataFrame([])
-
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
-    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData, To_Be_Plotted_Data
-
+    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData
 
     #Recurring for all the data files in the list
     for i in range(0, len(dFiles)):
@@ -39,32 +35,12 @@ def analyze_Files():
         else:
             AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
-        # Labelling Test Number
-        test_number = None
-        if 'Test 1' in file_name:
-            test_number = 1
-        elif 'Test 2' in file_name:
-            test_number = 2
-        elif 'Test 3' in file_name:
-            test_number = 3
-        elif 'Avg' in file_name:
-            test_number = 'Avg'
-        else:
-            test_number = None
-
         # Drop Rows with Frequnecy below and above a certain frequncy in Hz
         # 3rd below this is to set the starting row to the correct index as Q-Factor is sensitive to the index
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
         AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
         AmpData = AmpData.reset_index(drop=True)
 
-        # Adding data that only has to be added once
-        if 'Amplitude Ratio' in Current_File.columns:
-            TempStore_Anz = pd.DataFrame({'Test Number':[test_number]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number]})
-        else:
-            TempStore_Anz = pd.DataFrame({'Test Number':[test_number]})
-            TempStore_Plot = pd.DataFrame({'Test':[test_number]})
 
         # Extracting the data for the different segments
         MaxFreqPoints = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
@@ -157,135 +133,19 @@ def analyze_Files():
                 TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
                                             ('Amplitude Ratio ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
                                             ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
-                TempStore_Plot = pd.DataFrame({'Range':[str(MaxFreqPoints.iloc[j,0])],
-                                            'Peak Freq':[round(MaxFreq,3)],
-                                            'Amp Ratio':[round(MaxAmp.iloc[0,1],3)],
-                                            'Q-Factor':[round(qFactor,3)]})
             else:
                 TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
                                             ('Absolute Amplitude (a.u.) ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
                                             ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
-                TempStore_Plot = pd.DataFrame({'Range':[str(MaxFreqPoints.iloc[j,0])],
-                                            'Peak Freq':[round(MaxFreq,3)],
-                                            'Amplitude':[round(MaxAmp.iloc[0,1],3)],
-                                            'Q-Factor':[round(qFactor,3)]})
 
             # Saves data in a DataFrame, but further processing is needed for AnalyzedData (Saved as DataIntermediary) due to the axis used
             DataIntermediary = pd.concat([DataIntermediary, TempStore_Anz], axis=1)
-            To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, TempStore_Plot], ignore_index=True)
 
 
         # Putting Data of the file in queue into the final DataFrame
         AnalyzedData = pd.concat([AnalyzedData, DataIntermediary])
         AnalyzedData.reset_index()
-        del DataIntermediary, TempStore_Anz, TempStore_Plot
-
-
-    ##### Preparing Data to be Plotted by Data Plotters #####
-        #Function Variables
-        SavePath = ''
-        WatermelonLetter = ''   # Accepted Inputs (A, B, Amb)
-        TestRepetitions = 0
-        AvgFileExists = False
-
-        # Adding Data into Array for Table Plotter
-        SelectedPath = os.path.dirname(file_name)
-        # Checking if path with Specific Watermelon letter is in SavePath
-        if 'A Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'A Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'A'
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'A Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'A Test Avg') in dFiles[j]:
-                    AvgFileExists = True
-        elif 'B Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'B Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'B'
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'B Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'B Test Avg') in dFiles[j]:
-                    AvgFileExists = True
-        elif 'Amb Test' in SelectedPath and os.path.dirname(SelectedPath) in SavePath:
-            pass
-        elif 'Amb Test' in SelectedPath and not os.path.dirname(SelectedPath) in SavePath:
-            SavePath = os.path.dirname(SelectedPath)
-            WatermelonLetter = 'Amb'    # Special Code for Ambient Tests
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'Amb Test') in dFiles[j]:
-                    TestRepetitions += 1
-                    PlotRep = 1
-            for j in range(0, len(dFiles)):
-                if os.path.join(os.path.dirname(SelectedPath), 'Amb Test Avg') in dFiles[j]:
-                    AvgFileExists = True
-
-        # IMPORTANT: Avg File (If it Exists) should be the last file, this chuck is referrin to the code above
-        # Calculating Values after tests for that expeiment has been ran
-        # Counter to Find out how many iterations depending on number of input tests
-        # Input Filter to ensure that the Variable isn't reset while on the same test set
-
-        if AvgFileExists == True:
-            if PlotRep == TestRepetitions-1:
-                # Calculating Mean and adding it to the To be Plotted Dataframe
-                MeanData = To_Be_Plotted_Data.mean(axis=0, skipna=True, numeric_only=True)
-                MeanData = MeanData.to_frame().transpose()
-                MeanData.at[0,'Test']='Mean'
-
-                # Calculating SD and adding it to the To be Plotted Dataframe
-                SDData = To_Be_Plotted_Data.std(skipna=True, numeric_only=True)
-                SDData = SDData.to_frame().transpose()
-                SDData.at[0,'Test']='SD'
-                To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, MeanData.round(3), SDData.round(3)], ignore_index=True)
-                MeanData = SDData = None
-                PlotRep += 1
-            elif PlotRep == TestRepetitions:    # REMINDER: Avg File Must Be at the last Entry
-                # Plotting Data and Flushing Variables
-                TablePlotter(To_Be_Plotted_Data,SavePath,WatermelonLetter)
-                To_Be_Plotted_Data = pd.DataFrame(columns=To_Be_Plotted_Data.columns)
-                SavePath = ''
-                WatermelonLetter = ''
-                AvgFileExists = False
-                PlotRep = 1
-                TestRepetitions = 0
-            elif PlotRep < TestRepetitions-1:
-                PlotRep += 1
-            else:
-                Ack = input('Failure - Issue at Plotter variable Calculations')
-                del Ack
-        else:
-            if PlotRep == TestRepetitions:
-                # Calculating Mean and adding it to the To be Plotted Dataframe
-                MeanData = To_Be_Plotted_Data.mean(axis=0, skipna=True)
-                MeanData = MeanData.to_frame().transpose()
-                MeanData.at[0,'Test']='Mean'
-
-                # Calculating SD and adding it to the To be Plotted Dataframe
-                SDData = To_Be_Plotted_Data.std()
-                SDData = SDData.to_frame().transpose()
-                SDData.at[0,'Test']='SD'
-                To_Be_Plotted_Data = pd.concat([To_Be_Plotted_Data, MeanData.round(3), SDData.round(3)], ignore_index=True)
-                MeanData = SDData = None
-
-                # Plotting Data and Flushing Variables
-                TablePlotter(To_Be_Plotted_Data,SavePath,WatermelonLetter)
-                To_Be_Plotted_Data = pd.DataFrame(columns=To_Be_Plotted_Data.columns)
-                SavePath = WatermelonLetter = ''
-                PlotRep = 1
-                TestRepetitions = 0
-            elif PlotRep < TestRepetitions:
-                PlotRep += 1
-            else:
-                Ack = input('Failure - Issue at Plotter variable Calculations')
-                del Ack
+        del DataIntermediary, TempStore_Anz
 
 
     # Saving all of the Analyzed Data as an Excel File
