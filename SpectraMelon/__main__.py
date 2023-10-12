@@ -316,36 +316,6 @@ def FFTPlotter(input_array):
         plt.savefig(file_name + ' Plot.jpg', dpi=400)
         plt.clf()
 
-# Function to Plot out Table with Data
-def TablePlotter(input_data, save_path, watermelon_letter=''):
-    # Plotting Image
-    fig = go.Figure(data=[
-            go.Table(
-                header=dict(values=list(input_data.columns),align='center'),
-                cells=dict(values=input_data.values.transpose(),
-                        fill_color = [["white","lightgrey"]*input_data.shape[0]],
-                        align='center'
-                    )
-                )
-        ],
-        layout=go.Layout(
-            margin=go.layout.Margin(
-                l=0, #left margin
-                r=0, #right margin
-                b=0, #bottom margin
-                t=0, #top margin
-            )
-        )
-    )
-
-    fig.update_layout(
-        autosize=False,
-        width=400,
-    )
-
-    # Selecting Correct File Label (referencing the Watermelon Letter)
-    fig.write_image(os.path.join(save_path, (watermelon_letter + " Result Table.png")),height=148, scale=6)
-
 # Function to Select Specific Program Feature
 def SelectFeature():
     global dFiles
