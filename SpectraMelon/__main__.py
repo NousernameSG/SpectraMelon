@@ -18,55 +18,55 @@ widgets=[progressbar.Percentage(), ' ', progressbar.GranularBar(), ' ', progress
 
 
 ########## Storage Arrays/Variables ##########
-LowerBound_Freq = 100
-UpperBound_Freq = 1000
-Freq_SegmentRange = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
-NumberOfSegments = (UpperBound_Freq - LowerBound_Freq)/Freq_SegmentRange
-dFiles = []
+LowerBound_Frequency = 100
+UpperBound_Frequency = 1000
+FrequencyRange_Segment = 100 # The range of Frequencies for each segment (e.g. 100 ~ 199 Hz -> 100 Hz Range), this must be a multiple of LBF and UBF
+NumberOfSegments = (UpperBound_Frequency - LowerBound_Frequency)/FrequencyRange_Segment
+DataFiles = []
 
 
 ########## Main Program Functions ##########
 #Function to Analyze the files and store the output (Peak Frequency & Q-Factor)
 def analyze_Files():
-    global LowerBound_Freq, UpperBound_Freq, Freq_SegmentRange, NumberOfSegments, dFiles, AnalyzedData, widgets
+    global LowerBound_Frequency, UpperBound_Frequency, FrequencyRange_Segment, NumberOfSegments, DataFiles, AnalyzedData, widgets
 
     AnalyzedData = pd.DataFrame()
 
     print(f"\nExtracting data from files:\n")
-    with progressbar.ProgressBar(max_value=len(dFiles), widgets=widgets) as bar:
+    with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
         #Recurring for all the data files in the list
-        for i in range(0, len(dFiles)):
+        for i in range(0, len(DataFiles)):
             #Updating Progress Bar
             bar.update(i)
 
             #Reading Files
-            Current_File, file_name = mf.Input_File_Reader(dFiles[i])
+            Current_File, file_name = mf.Input_File_Reader(DataFiles[i])
             if 'Amplitude Ratio' in Current_File.columns:
-                AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
+                AmplitudeData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Amplitude Ratio'])
             else:
-                AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
+                AmplitudeData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
             # Drop Rows with Frequnecy below and above a certain frequncy in Hz
             # 3rd below this is to set the starting row to the correct index as Q-Factor is sensitive to the index
-            AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
-            AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
-            AmpData = AmpData.reset_index(drop=True)
+            AmplitudeData.drop(AmplitudeData[AmplitudeData['Frequency (Hz)'] < LowerBound_Frequency].index, inplace=True)
+            AmplitudeData.drop(AmplitudeData[AmplitudeData['Frequency (Hz)'] >= UpperBound_Frequency].index, inplace=True)
+            AmplitudeData = AmplitudeData.reset_index(drop=True)
 
 
             # Extracting the data for the different segments
-            MaxFreqPoints = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
+            PeakFrequencies = pd.DataFrame(columns=["Frequency Range", "Peak Frequency"])
             for j in range(0, int(NumberOfSegments)):
-                RestrictedAmpData = AmpData.copy()
-                RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] < (LowerBound_Freq + j*Freq_SegmentRange)].index, inplace=True)
-                RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Freq + (j+1)*Freq_SegmentRange)].index, inplace=True)
+                RestrictedAmpData = AmplitudeData.copy()
+                RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] < (LowerBound_Frequency + j*FrequencyRange_Segment)].index, inplace=True)
+                RestrictedAmpData.drop(RestrictedAmpData[RestrictedAmpData['Frequency (Hz)'] >= (LowerBound_Frequency + (j+1)*FrequencyRange_Segment)].index, inplace=True)
                 RestrictedAmpData = RestrictedAmpData.reset_index(drop=True)
 
 
                 # Extracting Max Frequncy & Amplitude Data
-                MaxAmp = RestrictedAmpData.iloc[RestrictedAmpData.iloc[:,1].idxmax()]
-                MaxFreq = MaxAmp.iloc[0,]
-                TempDataFrame = pd.DataFrame({"Frequency Range": [(str(LowerBound_Freq + j*Freq_SegmentRange) + ' ~ ' + str(LowerBound_Freq + (j+1)*Freq_SegmentRange))], "Peak Frequency": [MaxFreq]})
-                MaxFreqPoints = pd.concat([MaxFreqPoints, TempDataFrame], ignore_index=True)
+                MaximumAmplitude = RestrictedAmpData.iloc[RestrictedAmpData.iloc[:,1].idxmax()]
+                MaximumFrequency = MaximumAmplitude.iloc[0,]
+                TempDataFrame = pd.DataFrame({"Frequency Range": [(str(LowerBound_Frequency + j*FrequencyRange_Segment) + ' ~ ' + str(LowerBound_Frequency + (j+1)*FrequencyRange_Segment))], "Peak Frequency": [MaximumFrequency]})
+                PeakFrequencies = pd.concat([PeakFrequencies, TempDataFrame], ignore_index=True)
 
             del TempDataFrame
 
@@ -74,89 +74,89 @@ def analyze_Files():
             # and exports all of the data into dataframes for further analysis or saving
 
             # DataFrame to be used to store the 10 sets of Data for each file, data right below here only have to be input once, thus it is defined here
-            DataIntermediary = pd.DataFrame({'Queue':[i],
+            IntermediateDataFrame = pd.DataFrame({'Queue':[i],
                                                 'Path':[file_name]})
 
-            for j in range(0, MaxFreqPoints.shape[0]):
-                MaxAmp = AmpData[AmpData["Frequency (Hz)"] == MaxFreqPoints.iloc[j,1]]
-                MaxFreq = MaxAmp.iloc[0,0]
-                MaxAmpIdx = int(AmpData[AmpData.iloc[:,0]==MaxAmp.iloc[0,0]].index[0])
+            for j in range(0, PeakFrequencies.shape[0]):
+                MaximumAmplitude = AmplitudeData[AmplitudeData["Frequency (Hz)"] == PeakFrequencies.iloc[j,1]]
+                MaximumFrequency = MaximumAmplitude.iloc[0,0]
+                MaximumAmplitude_Index = int(AmplitudeData[AmplitudeData.iloc[:,0]==MaximumAmplitude.iloc[0,0]].index[0])
 
                 # Setting Up Q-Factor Calculation Variables
-                Half_MxAmp = MaxAmp.iloc[0,1]/2
-                LBI_Idx = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
-                UBI_Idx = None     # Upper Bound Intecept Index
-                LBI_Freq = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
-                UBI_Freq = 0    # Frequncy at UBI - Set to zero for exception handle to work
+                HalfMaximumAmplitude = MaximumAmplitude.iloc[0,1]/2
+                LowerBoundIntercept_Index = None     # Lower Bound Intercept Index - to find the equation of the line used in calculating the frequency at intercept
+                UpperBoundIntercept_Index = None     # Upper Bound Intecept Index
+                LowerBoundIntercept_Frequency = 0    # Frequency at LBI - Set to zero for auto bounding if there is a situation where there isn't an actual intercept
+                UpperBoundIntercept_Frequency = 0    # Frequncy at UBI - Set to zero for exception handle to work
 
                 # Finding Frequency of Lower Bound Intercept
                 # Starts from the Index of the Peak Freq down to reach the closest Intercept
-                for k in range(MaxAmpIdx,0,-1):
-                    LowerV = AmpData.iloc[k-1,1]
-                    UpperV = AmpData.iloc[k,1]
+                for k in range(MaximumAmplitude_Index,0,-1):
+                    LowerV = AmplitudeData.iloc[k-1,1]
+                    UpperV = AmplitudeData.iloc[k,1]
                     # When the Condition that one value is below and the other is above the
                     # half magnitude line, the LBI Variable is set to be used in further calculations
-                    if LowerV <= Half_MxAmp and UpperV >= Half_MxAmp:
-                        LBI_Idx = k
-                        x1 = AmpData.iloc[LBI_Idx-1,0]
-                        x2 = AmpData.iloc[LBI_Idx,0]
-                        y1 = AmpData.iloc[LBI_Idx-1,1]
-                        y2 = AmpData.iloc[LBI_Idx,1]
+                    if LowerV <= HalfMaximumAmplitude and UpperV >= HalfMaximumAmplitude:
+                        LowerBoundIntercept_Index = k
+                        x1 = AmplitudeData.iloc[LowerBoundIntercept_Index-1,0]
+                        x2 = AmplitudeData.iloc[LowerBoundIntercept_Index,0]
+                        y1 = AmplitudeData.iloc[LowerBoundIntercept_Index-1,1]
+                        y2 = AmplitudeData.iloc[LowerBoundIntercept_Index,1]
 
                         Gradient = (y2-y1)/(x2-x1)
                         Constant = y2-Gradient*x2
 
-                        LBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                        LowerBoundIntercept_Frequency = (HalfMaximumAmplitude-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
                         del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
                         break
 
                 # Finding Frequency of Upper Bound Intercept
                 #Stars from the Index of the Peak Frequncy Up to reach the closest intercept
-                for k in range(MaxAmpIdx,AmpData.shape[0]-1):
-                    LowerV = AmpData.iloc[k,1]
-                    UpperV = AmpData.iloc[k+1,1]
+                for k in range(MaximumAmplitude_Index,AmplitudeData.shape[0]-1):
+                    LowerV = AmplitudeData.iloc[k,1]
+                    UpperV = AmplitudeData.iloc[k+1,1]
                     # When the Condition that one value is below and the other is above the
                     # half magnitude line, the UBI Variable is set to be used in further calculations
-                    if LowerV >= Half_MxAmp and UpperV <= Half_MxAmp:
-                        UBI_Idx = k
-                        x1 = AmpData.iloc[UBI_Idx,0]
-                        x2 = AmpData.iloc[UBI_Idx+1,0]
-                        y1 = AmpData.iloc[UBI_Idx,1]
-                        y2 = AmpData.iloc[UBI_Idx+1,1]
+                    if LowerV >= HalfMaximumAmplitude and UpperV <= HalfMaximumAmplitude:
+                        UpperBoundIntercept_Index = k
+                        x1 = AmplitudeData.iloc[UpperBoundIntercept_Index,0]
+                        x2 = AmplitudeData.iloc[UpperBoundIntercept_Index+1,0]
+                        y1 = AmplitudeData.iloc[UpperBoundIntercept_Index,1]
+                        y2 = AmplitudeData.iloc[UpperBoundIntercept_Index+1,1]
 
                         Gradient = (y2-y1)/(x2-x1)
                         Constant = y2-Gradient*x2
 
-                        UBI_Freq = (Half_MxAmp-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
+                        UpperBoundIntercept_Frequency = (HalfMaximumAmplitude-Constant)/Gradient   # Calculating the Intercept Frequency of the Lower Bound
                         del x1, x2, y1, y2, Gradient, Constant, LowerV, UpperV
                         break
 
                 # Calculating Q-Factor
-                if LBI_Freq == 0 and UBI_Freq == 0:
+                if LowerBoundIntercept_Frequency == 0 and UpperBoundIntercept_Frequency == 0:
                     qFactor = None                          # Exception Handle for the case where there doesn't exist an intercept, extremely unlikely but it's nice to have
-                elif LBI_Freq == 0:
-                    qFactor = MaxFreq/UBI_Freq
+                elif LowerBoundIntercept_Frequency == 0:
+                    qFactor = MaximumFrequency/UpperBoundIntercept_Frequency
                 else:
-                    qFactor = MaxFreq/(UBI_Freq-LBI_Freq)   # The bracketed term is the Delta f used for Q-Factor calculations
+                    qFactor = MaximumFrequency/(UpperBoundIntercept_Frequency-LowerBoundIntercept_Frequency)   # The bracketed term is the Delta f used for Q-Factor calculations
 
                 # Adding File Path and calculations into a DataFrames for Storage
                 if 'Amplitude Ratio' in Current_File.columns:
-                    TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
-                                                ('Amplitude Ratio ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
-                                                ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
+                    TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((PeakFrequencies.iloc[j,0]))):[MaximumFrequency],
+                                                ('Amplitude Ratio ' + str((PeakFrequencies.iloc[j,0]))):[MaximumAmplitude.iloc[0,1]],
+                                                ('Q-Factor ' + str((PeakFrequencies.iloc[j,0]))):[qFactor]})
                 else:
-                    TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((MaxFreqPoints.iloc[j,0]))):[MaxFreq],
-                                                ('Absolute Amplitude (a.u.) ' + str((MaxFreqPoints.iloc[j,0]))):[MaxAmp.iloc[0,1]],
-                                                ('Q-Factor ' + str((MaxFreqPoints.iloc[j,0]))):[qFactor]})
+                    TempStore_Anz = pd.DataFrame({('Peak Frequency ' + str((PeakFrequencies.iloc[j,0]))):[MaximumFrequency],
+                                                ('Absolute Amplitude (a.u.) ' + str((PeakFrequencies.iloc[j,0]))):[MaximumAmplitude.iloc[0,1]],
+                                                ('Q-Factor ' + str((PeakFrequencies.iloc[j,0]))):[qFactor]})
 
-                # Saves data in a DataFrame, but further processing is needed for AnalyzedData (Saved as DataIntermediary) due to the axis used
-                DataIntermediary = pd.concat([DataIntermediary, TempStore_Anz], axis=1)
+                # Saves data in a DataFrame, but further processing is needed for AnalyzedData (Saved as IntermediateDataFrame) due to the axis used
+                IntermediateDataFrame = pd.concat([IntermediateDataFrame, TempStore_Anz], axis=1)
 
 
             # Putting Data of the file in queue into the final DataFrame
-            AnalyzedData = pd.concat([AnalyzedData, DataIntermediary])
+            AnalyzedData = pd.concat([AnalyzedData, IntermediateDataFrame])
             AnalyzedData.reset_index()
-            del DataIntermediary, TempStore_Anz
+            del IntermediateDataFrame, TempStore_Anz
 
 
     # Saving all of the Analyzed Data as an Excel File
@@ -165,45 +165,45 @@ def analyze_Files():
 
 # Experimental: Function to change Amplitude Column to Amplitude Ratio (Amplitude of Peak Freq = 1, the rests are ratios of the peak)
 def AmplitudeNormalizer():
-    global LowerBound_Freq, UpperBound_Freq, dFiles, widgets
+    global LowerBound_Frequency, UpperBound_Frequency, DataFiles, widgets
 
     print(f"\nNormalizing Data:\n")
-    with progressbar.ProgressBar(max_value=len(dFiles), widgets=widgets) as bar:
+    with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
         #Recurring for all the data files in the list
-        for i in range(0, len(dFiles)):
+        for i in range(0, len(DataFiles)):
             #Updating Progress Bar
             bar.update(i)
 
         #Normalizing Data
-        for i in range(0, len(dFiles)):
-            Current_File, file_name = mf.Input_File_Reader(dFiles[i])
-            AmpData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
+        for i in range(0, len(DataFiles)):
+            Current_File, file_name = mf.Input_File_Reader(DataFiles[i])
+            AmplitudeData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
             # Drop Rows with Frequnecy below and above a certain frequncy in Hz
-            AmpData.drop(AmpData[AmpData['Frequency (Hz)'] < LowerBound_Freq].index, inplace=True)
-            AmpData.drop(AmpData[AmpData['Frequency (Hz)'] >= UpperBound_Freq].index, inplace=True)
-            AmpData = AmpData.reset_index(drop=True)
+            AmplitudeData.drop(AmplitudeData[AmplitudeData['Frequency (Hz)'] < LowerBound_Frequency].index, inplace=True)
+            AmplitudeData.drop(AmplitudeData[AmplitudeData['Frequency (Hz)'] >= UpperBound_Frequency].index, inplace=True)
+            AmplitudeData = AmplitudeData.reset_index(drop=True)
 
             # Extracting Amplitude of Peak Frequency
-            MaxAmp = AmpData.iloc[AmpData.iloc[:,1].idxmax()]
-            MaxAmp = MaxAmp.iloc[1,]
+            MaximumAmplitude = AmplitudeData.iloc[AmplitudeData.iloc[:,1].idxmax()]
+            MaximumAmplitude = MaximumAmplitude.iloc[1,]
             AmpRatio = pd.DataFrame([], columns=['Amplitude Ratio'])
 
             # Calculating Amplitude Percentages
-            AmpRatio['Amplitude Ratio'] = AmpData['Absolute Amplitude (a.u.)']
-            AmpRatio = AmpRatio.div(MaxAmp, axis=1)
+            AmpRatio['Amplitude Ratio'] = AmplitudeData['Absolute Amplitude (a.u.)']
+            AmpRatio = AmpRatio.div(MaximumAmplitude, axis=1)
 
             # Merging Calculated Data and Saving DataFrame as Excel Output
-            AmpRatioData = pd.concat([AmpData, AmpRatio],axis=1)
+            AmpRatioData = pd.concat([AmplitudeData, AmpRatio],axis=1)
             AmpRatioData.to_csv(file_name + " (Mod).csv", index = False)
             AmpRatioData = pd.DataFrame(columns=AmpRatioData.columns)
-            dFiles.pop(i)
-            dFiles.insert(i, file_name + " (Mod).csv")
+            DataFiles.pop(i)
+            DataFiles.insert(i, file_name + " (Mod).csv")
 
 # Function to Calculate the Averaged Data (Mean of Each Row of Entry - They must have the same number of Inputs)
 # Note: This will calculate the average of all of the Data given and output it an excel sheet
 def TestAvgCalculator():
-    global dFiles
+    global DataFiles
 
     SavePath = []
     Reduced_dFiles = []
@@ -214,17 +214,17 @@ def TestAvgCalculator():
     input_data = pd.DataFrame()
 
     # Mini Feature to count how many repetitions are needed
-    for i in range (0,len(dFiles)):
-        SelectedPath = os.path.dirname(os.path.dirname(dFiles[i]))
-        if os.path.join(SelectedPath, 'A Test') in dFiles[i]:
+    for i in range (0,len(DataFiles)):
+        SelectedPath = os.path.dirname(os.path.dirname(DataFiles[i]))
+        if os.path.join(SelectedPath, 'A Test') in DataFiles[i]:
             if any(os.path.join(SelectedPath, 'A Test') in SavePath for (flag) in SavePath) == False:
                 TestRepetitions += 1
                 SavePath.append(os.path.join(SelectedPath, 'A Test'))
-        elif os.path.join(SelectedPath, 'B Test') in dFiles[i]:
+        elif os.path.join(SelectedPath, 'B Test') in DataFiles[i]:
             if any(os.path.join(SelectedPath, 'B Test') in SavePath for (flag) in SavePath) == False:
                 TestRepetitions += 1
                 SavePath.append(os.path.join(SelectedPath, 'B Test'))
-        elif os.path.join(SelectedPath, 'Amb Test') in dFiles[i]:
+        elif os.path.join(SelectedPath, 'Amb Test') in DataFiles[i]:
             if any(os.path.join(SelectedPath, 'Amb Test') in SavePath for (flag) in SavePath) == False:
                 TestRepetitions += 1
                 SavePath.append(os.path.join(SelectedPath, 'Amb Test'))
@@ -233,37 +233,37 @@ def TestAvgCalculator():
     SavePath = []
 
     print(f"\nCalculating Averaged Data Set:\n")
-    with progressbar.ProgressBar(max_value=len(dFiles), widgets=widgets) as bar:
+    with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
         #Recurring for all the data files in the list
-        for i in range(0, len(dFiles)):
+        for i in range(0, len(DataFiles)):
             #Updating Progress Bar
             bar.update(i)
 
         # Calculating Averaged Data sets
         for i in range (0,TestRepetitions):
-            SelectedPath = os.path.dirname(os.path.dirname(dFiles[0]))
+            SelectedPath = os.path.dirname(os.path.dirname(DataFiles[0]))
             # Checking if path with Specific Watermelon letter is in SavePath
-            if 'A Test' in os.path.dirname(dFiles[0]):
+            if 'A Test' in os.path.dirname(DataFiles[0]):
                 WatermelonLetter = 'A'
-                for j in range(0, len(dFiles)):
-                    if os.path.join(SelectedPath, 'A Test') in dFiles[j]:
-                        Reduced_dFiles.append(dFiles[j])
-                # Removing files added into Reduced_dFiles from the main dFiles list
-                dFiles = [elements for elements in dFiles if os.path.join(SelectedPath, 'A Test') not in elements]
-            elif 'B Test' in os.path.dirname(dFiles[0]):
+                for j in range(0, len(DataFiles)):
+                    if os.path.join(SelectedPath, 'A Test') in DataFiles[j]:
+                        Reduced_dFiles.append(DataFiles[j])
+                # Removing files added into Reduced_dFiles from the main DataFiles list
+                DataFiles = [elements for elements in DataFiles if os.path.join(SelectedPath, 'A Test') not in elements]
+            elif 'B Test' in os.path.dirname(DataFiles[0]):
                 WatermelonLetter = 'B'
-                for j in range(0, len(dFiles)):
-                    if os.path.join(SelectedPath, 'B Test') in dFiles[j]:
-                        Reduced_dFiles.append(dFiles[j])
-                # Removing files added into Reduced_dFiles from the main dFiles list
-                dFiles = [elements for elements in dFiles if os.path.join(SelectedPath, 'B Test') not in elements]
-            elif 'Amb Test' in os.path.dirname(dFiles[0]):
+                for j in range(0, len(DataFiles)):
+                    if os.path.join(SelectedPath, 'B Test') in DataFiles[j]:
+                        Reduced_dFiles.append(DataFiles[j])
+                # Removing files added into Reduced_dFiles from the main DataFiles list
+                DataFiles = [elements for elements in DataFiles if os.path.join(SelectedPath, 'B Test') not in elements]
+            elif 'Amb Test' in os.path.dirname(DataFiles[0]):
                 WatermelonLetter = 'Amb'
-                for j in range(0, len(dFiles)):
-                    if os.path.join(SelectedPath, 'Amb Test') in dFiles[j]:
-                        Reduced_dFiles.append(dFiles[j])
-                # Removing files added into Reduced_dFiles from the main dFiles list
-                dFiles = [elements for elements in dFiles if os.path.join(SelectedPath, 'Amb Test') not in elements]
+                for j in range(0, len(DataFiles)):
+                    if os.path.join(SelectedPath, 'Amb Test') in DataFiles[j]:
+                        Reduced_dFiles.append(DataFiles[j])
+                # Removing files added into Reduced_dFiles from the main DataFiles list
+                DataFiles = [elements for elements in DataFiles if os.path.join(SelectedPath, 'Amb Test') not in elements]
 
             for j in range(0, len(Reduced_dFiles)):
                 file_name, file_extension = os.path.splitext(Reduced_dFiles[j])
@@ -290,9 +290,9 @@ def TestAvgCalculator():
             input_data = pd.DataFrame(columns=input_data.columns)
 
             # Rebasing Amplitude Ratio Back to one for the peak value
-            MaxAmp = AveragedData.iloc[AveragedData.iloc[:,1].idxmax()]
-            MaxAmp = MaxAmp.iloc[1,]
-            AveragedData['Amplitude Ratio'] = AveragedData['Amplitude Ratio'].div(MaxAmp)
+            MaximumAmplitude = AveragedData.iloc[AveragedData.iloc[:,1].idxmax()]
+            MaximumAmplitude = MaximumAmplitude.iloc[1,]
+            AveragedData['Amplitude Ratio'] = AveragedData['Amplitude Ratio'].div(MaximumAmplitude)
 
             ## Checking if it is A Test or B Test Avg
             BasePath = SelectedPath
@@ -315,7 +315,7 @@ def TestAvgCalculator():
                 Ack = input("Bruh - L356")
                 del Ack
 
-            # Adding Files into a new list to replace the dFiles
+            # Adding Files into a new list to replace the DataFiles
             Reduced_dFiles.append(AddedPath)
             NewOutput_dFiles.extend(Reduced_dFiles)
             Reduced_dFiles = []
@@ -353,14 +353,14 @@ def FFTPlotter(input_array):
 
 # Function to Select Specific Program Feature
 def SelectFeature():
-    global dFiles
+    global DataFiles
     while True:
         mf.cls()
         print("Queue: ")
-        for i in range(0,len(dFiles)):
+        for i in range(0,len(DataFiles)):
             print(i, end="")
             print(" \t ", end="")
-            print(dFiles[i])
+            print(DataFiles[i])
         Fea_Options = input("\n\nOptions \n[1] Amplitude Ratio Calculator \n[2] Averaged Data Calculator \n[3] FFT Spectrum Plotter \n[4] Spectrum Analyzer \n[5] Full Suite \n[6] Back \n[7] Exit \nSelect Option: ")
         if ic.int_Checker(Fea_Options) == False:
             continue
@@ -371,33 +371,33 @@ def SelectFeature():
             case 1:
                 # Option 1 : Amplitude Percentage Calculator
                 AmplitudeNormalizer()
-                dFiles = []
+                DataFiles = []
                 break
 
             case 2:
                 # Option 2 : Averaged Data Calculator
-                dFiles = TestAvgCalculator()
+                DataFiles = TestAvgCalculator()
                 break
 
             case 3:
                 # Option 3 : FFT Spectrum Graph Plotter
-                FFTPlotter(dFiles)
-                dFiles = []
+                FFTPlotter(DataFiles)
+                DataFiles = []
                 break
 
             case 4:
                 # Option 4 : Spectrum Analyzer
                 analyze_Files()
-                dFiles = []
+                DataFiles = []
                 break
 
             case 5:
                 # Option 5 : Full Suite (Percentage Calculator -> Averaged Data -> FFT Graph Plotter -> Analyzer)
                 AmplitudeNormalizer()
-                dFiles = TestAvgCalculator()
-                FFTPlotter(dFiles)
+                DataFiles = TestAvgCalculator()
+                FFTPlotter(DataFiles)
                 analyze_Files()
-                dFiles = []
+                DataFiles = []
                 break
 
             case 6:
@@ -424,10 +424,10 @@ while True:
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
     print("Queue: ")
-    for i in range(0,len(dFiles)):
+    for i in range(0,len(DataFiles)):
         print(i, end="")
         print(" \t ", end="")
-        print(dFiles[i])
+        print(DataFiles[i])
 
     ## Program Selection Option
     aF_Options = input("\n\nOptions \n[1] Add Path \n[2] Remove Path \n[3] Continue \n[4] Exit \nSelect Option: ")
@@ -446,18 +446,18 @@ while True:
             elif ic.Extension_Checker(Data_File_Path) == False:
                 Ack = input("Wrong File Extension (.xlsx/.xls/.csv Files only) \nPress Enter to Continue")
                 continue
-            elif ic.Duplicate_Path_Checker(Data_File_Path, dFiles) == True:
+            elif ic.Duplicate_Path_Checker(Data_File_Path, DataFiles) == True:
                 Ack = input("This file path already exists in the queue \nPress Enter to Continue")
                 continue
             else:
-                dFiles.append(Data_File_Path)
+                DataFiles.append(Data_File_Path)
 
         case 2:
             # Option 2 : Removing Data Files from the list to be analyzed
             Remove_Data_File = input("\nInput the Numerical Position of file to be removed (First File is 0): ")
             if ic.int_Checker(Remove_Data_File) == False:
                 continue
-            if mf.Element_Remover(Remove_Data_File, dFiles) == False:
+            if mf.Element_Remover(Remove_Data_File, DataFiles) == False:
                 continue
 
         case 3:
