@@ -1,4 +1,4 @@
-# SpectraMelon : Audio Spectrum Analyzer
+# SpectraMelon : Audio Spetrum Processor
 # Version | Date : 0.1.0-beta | 7 Oct 2023
 # Author : NousernameSG
 
@@ -326,13 +326,12 @@ def TestAvgCalculator():
 def FFTPlotter(input_array):
     print(f"\nPlotting FFT Spectrums:\n")
     with progressbar.ProgressBar(max_value=len(input_array), widgets=widgets) as bar:
-        #Recurring for all the data files in the list
+
+        #Plotting Graph
         for i in range(0, len(input_array)):
             #Updating Progress Bar
             bar.update(i)
 
-        #Plotting Graph
-        for i in range(0, len(input_array)):
             Current_File, file_name = mf.Input_File_Reader(input_array[i])
 
             #Labelling X-Axis
@@ -418,9 +417,9 @@ def SelectFeature():
 while True:
     mf.cls()
     print(' INFORMATION '.center(100, '*'))
-    print("SpectraMelon: Audio Spectrum Analyzer")
+    print("SpectraMelon: Audio Spectrum Processor")
     print("Build: v0.1.0-beta (7 Oct 2023)", end="\n\n")
-    print("This Audio Spectrum Analyzer is built for the Research and Development Stage of the SRP Project")
+    print("This Audio Spectrum Processor is built for the Research and Development Stage of the SRP Project")
     print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
     print("Queue: ")
