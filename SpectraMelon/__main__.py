@@ -213,34 +213,37 @@ def TestAvgCalculator():
     Freq_Axis = pd.DataFrame()
     input_data = pd.DataFrame()
 
-    # Mini Feature to count how many repetitions are needed
-    for i in range (0,len(DataFiles)):
-        SelectedPath = os.path.dirname(os.path.dirname(DataFiles[i]))
-        if os.path.join(SelectedPath, 'A Test') in DataFiles[i]:
-            if any(os.path.join(SelectedPath, 'A Test') in SavePath for (flag) in SavePath) == False:
-                TestRepetitions += 1
-                SavePath.append(os.path.join(SelectedPath, 'A Test'))
-        elif os.path.join(SelectedPath, 'B Test') in DataFiles[i]:
-            if any(os.path.join(SelectedPath, 'B Test') in SavePath for (flag) in SavePath) == False:
-                TestRepetitions += 1
-                SavePath.append(os.path.join(SelectedPath, 'B Test'))
-        elif os.path.join(SelectedPath, 'Amb Test') in DataFiles[i]:
-            if any(os.path.join(SelectedPath, 'Amb Test') in SavePath for (flag) in SavePath) == False:
-                TestRepetitions += 1
-                SavePath.append(os.path.join(SelectedPath, 'Amb Test'))
+    print(f"\nSorting Data Files:\n")
+    with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
+
+        # Mini Feature to count how many repetitions are needed
+        for i in range (0,len(DataFiles)):
+            bar.update(i)
+            SelectedPath = os.path.dirname(os.path.dirname(DataFiles[i]))
+            if os.path.join(SelectedPath, 'A Test') in DataFiles[i]:
+                if any(os.path.join(SelectedPath, 'A Test') in SavePath for (flag) in SavePath) == False:
+                    TestRepetitions += 1
+                    SavePath.append(os.path.join(SelectedPath, 'A Test'))
+            elif os.path.join(SelectedPath, 'B Test') in DataFiles[i]:
+                if any(os.path.join(SelectedPath, 'B Test') in SavePath for (flag) in SavePath) == False:
+                    TestRepetitions += 1
+                    SavePath.append(os.path.join(SelectedPath, 'B Test'))
+            elif os.path.join(SelectedPath, 'Amb Test') in DataFiles[i]:
+                if any(os.path.join(SelectedPath, 'Amb Test') in SavePath for (flag) in SavePath) == False:
+                    TestRepetitions += 1
+                    SavePath.append(os.path.join(SelectedPath, 'Amb Test'))
 
     # Resetting Save Path
     SavePath = []
 
     print(f"\nCalculating Averaged Data Set:\n")
-    with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
-        #Recurring for all the data files in the list
-        for i in range(0, len(DataFiles)):
-            #Updating Progress Bar
-            bar.update(i)
+    with progressbar.ProgressBar(max_value=TestRepetitions, widgets=widgets) as bar:
 
         # Calculating Averaged Data sets
         for i in range (0,TestRepetitions):
+            #Updating Progress Bar
+            bar.update(i)
+
             SelectedPath = os.path.dirname(os.path.dirname(DataFiles[0]))
             # Checking if path with Specific Watermelon letter is in SavePath
             if 'A Test' in os.path.dirname(DataFiles[0]):
