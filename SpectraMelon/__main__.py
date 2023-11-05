@@ -167,15 +167,15 @@ def analyze_Files():
 def AmplitudeNormalizer():
     global LowerBound_Frequency, UpperBound_Frequency, DataFiles, widgets
 
-    print(f"\nNormalizing Data:\n")
     with progressbar.ProgressBar(max_value=len(DataFiles), widgets=widgets) as bar:
-        #Recurring for all the data files in the list
+
+        print(f"\nNormalizing Data:\n")
+
+        #Normalizing Data
         for i in range(0, len(DataFiles)):
             #Updating Progress Bar
             bar.update(i)
 
-        #Normalizing Data
-        for i in range(0, len(DataFiles)):
             Current_File, file_name = mf.Input_File_Reader(DataFiles[i])
             AmplitudeData = pd.DataFrame(Current_File, columns=['Frequency (Hz)','Absolute Amplitude (a.u.)'])
 
@@ -185,7 +185,7 @@ def AmplitudeNormalizer():
             AmplitudeData = AmplitudeData.reset_index(drop=True)
 
             # Extracting Amplitude of Peak Frequency
-            MaximumAmplitude = AmplitudeData.iloc[AmplitudeData.iloc[:,1].idxmax()]
+            MaximumAmplitude = AmplitudeData.iloc[AmplitudeData.iloc[:,1].astype(float).idxmax()]
             MaximumAmplitude = MaximumAmplitude.iloc[1,]
             AmpRatio = pd.DataFrame([], columns=['Amplitude Ratio'])
 
