@@ -52,6 +52,7 @@ After cloning the Repository to your device using `git clone https://github.com/
   <summary>Beta Versions</summary>
   <ol>
     <li>
+      <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.1-beta">v0.1.1-beta</a>
       <a href="https://github.com/NousernameSG/SpectraMelon/releases/tag/v0.1.0-beta">v0.1.0-beta</a>
     </li>
   </ol>
