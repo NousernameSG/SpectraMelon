@@ -1,5 +1,5 @@
 # SpectraMelon : Audio Spetrum Processor
-# Version | Date : 0.1.0-beta | 7 Oct 2023
+# Version | Date : 0.1.1-beta | 8 Nov 2023
 # Author : NousernameSG
 
 import os
@@ -421,9 +421,8 @@ while True:
     mf.cls()
     print(' INFORMATION '.center(100, '*'))
     print("SpectraMelon: Audio Spectrum Processor")
-    print("Build: v0.1.0-beta (7 Oct 2023)", end="\n\n")
-    print("This Audio Spectrum Processor is built for the Research and Development Stage of the SRP Project")
-    print("\"Investigation of Acoustic Properties of Water Melon\"", end="\n\n")
+    print("Build: v0.1.1-beta (8 Nov 2023)", end="\n\n")
+    print("This Audio Spectrum Processor is built to assist in the data analysis of the output data from the \nAudio Spectrum experiment in Phyphox for an SRP Project")
     print(' PROGRAM '.center(100, '*'), end="\n\n")
     print("Queue: ")
     for i in range(0,len(DataFiles)):
